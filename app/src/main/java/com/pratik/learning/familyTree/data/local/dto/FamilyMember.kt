@@ -1,0 +1,68 @@
+package com.pratik.learning.familyTree.data.local.dto
+
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+/**
+ * Defines the main table for storing family members.
+ */
+@Entity(tableName = "members")
+data class FamilyMember(
+    // Primary key, auto-generated for new members
+    @PrimaryKey(autoGenerate = true)
+    val memberId: Int = 0,
+
+    val fullName: String,
+    val gender: String, // "M" or "F"
+    val dob: String, // Date of Birth (ISO format "YYYY-MM-DD")
+    val isLiving: Boolean,
+    val dod: String?, // Date of Death (Nullable)
+    val city: String?,
+    val mobile: String?,
+)
+
+
+/**
+ * Data class to hold the result of the query: a member's full details
+ * joined with their father's full name.
+ */
+data class MemberWithFather(
+    // Fields from the FamilyMember entity
+    val memberId: Int,
+    val fullName: String,
+    val gender: String,
+    val dob: String,
+    val isLiving: Boolean,
+    val dod: String?,
+    val city: String?,
+    val mobile: String?,
+
+    // Field from the JOIN operation (the father's name)
+    val fatherFullName: String?
+)
+
+data class DualAncestorTree(
+    val self: FamilyMember?,
+    val spouse: FamilyMember?,
+    val paternalLineRoot: AncestorNode?,
+    val maternalLineRoot: AncestorNode?)
+
+data class AncestorNode(
+    val level: Int,
+    val member: FamilyMember,
+    val spouse: FamilyMember?,
+    val parents: List<AncestorNode>,
+    val relationWithMember: String = ""
+)
+
+data class MemberRelations(
+    val parents: List<Pair<String, FamilyMember>> = emptyList(),
+    val spouse: Pair<String, FamilyMember>? = null,
+    val inLaws: List<Pair<String, FamilyMember>> = emptyList(),
+    val siblings: List<Pair<String, FamilyMember>> = emptyList(),
+    val children: List<Pair<String, FamilyMember>> = emptyList(),
+    val grandchildren: List<Pair<String, FamilyMember>> = emptyList(),
+    val grandParentsFather: List<Pair<String, FamilyMember>> = emptyList(),
+    val grandParentsMother: List<Pair<String, FamilyMember>> = emptyList(),
+)

@@ -1,0 +1,77 @@
+[
+  {
+    "topicId": 61,
+    "question": "What is an Android Service?",
+    "answer": "An Android Service is a component that allows background tasks to run without a UI. It continues executing even when the user switches to another app."
+  },
+  {
+    "topicId": 61,
+    "question": "What is the difference between startService() and bindService()?",
+    "answer": "startService() starts a service that runs in the background indefinitely, while bindService() allows a component to bind and interact with the service. The service stops when no components are bound."
+  },
+  {
+    "topicId": 61,
+    "question": "What is a Foreground Service and why is it used?",
+    "answer": "A Foreground Service shows a persistent notification and is used for long-running background tasks to prevent the system from killing it."
+  },
+  {
+    "topicId": 61,
+    "question": "What are the return values of onStartCommand() and what do they mean?",
+    "answer": "onStartCommand() can return START_STICKY (restart with null intent), START_NOT_STICKY (do not restart), or START_REDELIVER_INTENT (restart and redeliver intent)."
+  },
+  {
+    "topicId": 61,
+    "question": "How does the Android OS handle background services in API 26 and above?",
+    "answer": "Starting with Android 8 (API 26), background execution limits were introduced, restricting background services. ForegroundService, JobScheduler, or WorkManager should be used instead."
+  },
+  {
+    "topicId": 61,
+    "question": "How do you create a Bound Service and interact with it?",
+    "answer": "Create a Service class, override onBind() to return a Binder instance, and use bindService() in the client to get a reference and call methods directly."
+  },
+  {
+    "topicId": 61,
+    "question": "What happens if a Service is killed by the system?",
+    "answer": "It depends on the return value of onStartCommand(). For START_STICKY, the service is restarted; START_NOT_STICKY, it's not; START_REDELIVER_INTENT, the intent is redelivered."
+  },
+  {
+    "topicId": 61,
+    "question": "Can you run a Service in a separate process?",
+    "answer": "Yes, by specifying android:process=\":remote\" in the manifest. This creates a new process for the service to run independently of the app process."
+  },
+  {
+    "topicId": 61,
+    "question": "Why was IntentService deprecated and what should be used instead?",
+    "answer": "IntentService was deprecated because it wasn't efficient under new background restrictions. Developers should now use JobIntentService, WorkManager, or coroutines."
+  },
+  {
+    "topicId": 61,
+    "question": "How do system services interact with application services in AOSP?",
+    "answer": "System services (e.g., ActivityManagerService) run under system_server and can communicate via Binder. App services interact through exported components or bound services using IPC."
+  },
+  {
+    "topicId": 61,
+    "question": "What is the difference between JobService and a regular Service?",
+    "answer": "JobService is scheduled based on system conditions and constraints, while a regular Service starts immediately. JobService is more battery-friendly and Doze-compliant."
+  },
+  {
+    "topicId": 61,
+    "question": "How can you safely stop a ForegroundService when the task is complete?",
+    "answer": "Call stopForeground(true) to remove the notification, followed by stopSelf() to stop the service."
+  },
+  {
+    "topicId": 61,
+    "question": "Can an Activity bind to a Service started with startService()?",
+    "answer": "Yes, a service can be both started and bound. The service will run until stopSelf() is called and all clients unbind."
+  },
+  {
+    "topicId": 61,
+    "question": "How do you avoid memory leaks with bound services?",
+    "answer": "Always unbind the service in onStop() or onDestroy() of the client and avoid strong references to Context inside the Service."
+  },
+  {
+    "topicId": 61,
+    "question": "What are the security implications of exported services?",
+    "answer": "Exported services can be accessed by other apps, so they should always validate permissions and check the calling UID in onBind or onStartCommand."
+  }
+]

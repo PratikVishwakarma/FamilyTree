@@ -1,0 +1,795 @@
+[
+  {
+    "id": 1,
+    "title": "Kotlin Basics",
+    "description": "Learn the basics of Kotlin language",
+    "details": "Start your Kotlin journey by understanding its syntax, variables, and control structures. This forms the foundation for writing concise and expressive Android code.",
+    "subTopics": [
+      "Kotlin syntax and structure",
+      "Variables and data types",
+      "Conditionals and loops",
+      "Null safety and type inference",
+      "Kotlin IDE setup and playgrounds"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Functions in Kotlin",
+    "description": "Understand how functions work in Kotlin",
+    "details": "Master function declarations, default arguments, extension functions, and lambda expressions to write reusable and modular Kotlin code.",
+    "subTopics": [
+      "Function declaration and syntax",
+      "Default and named parameters",
+      "Inline and infix functions",
+      "Lambda expressions and anonymous functions",
+      "Extension functions"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Android Activity Lifecycle",
+    "description": "Learn lifecycle of an activity",
+    "details": "Understand how Android activities are created and destroyed. Learn the impact of lifecycle states on UI and resource management.",
+    "subTopics": [
+      "Lifecycle methods: onCreate, onStart, onResume, onPause, onStop, onDestroy",
+      "Activity state management",
+      "Configuration changes",
+      "Lifecycle-aware components",
+      "Common lifecycle bugs and fixes"
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Fragments and Navigation",
+    "description": "Manage UI components with fragments",
+    "details": "Deep dive into the topic: Fragments and Navigation. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Fragments and Navigation",
+      "Use cases of Fragments and Navigation in Android",
+      "Best practices for Fragments and Navigation",
+      "Common pitfalls in Fragments and Navigation",
+      "Hands-on examples with Fragments and Navigation"
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Jetpack Compose Basics",
+    "description": "Start building UIs with Compose",
+    "details": "Deep dive into the topic: Jetpack Compose Basics. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Jetpack Compose Basics",
+      "Use cases of Jetpack Compose Basics in Android",
+      "Best practices for Jetpack Compose Basics",
+      "Common pitfalls in Jetpack Compose Basics",
+      "Hands-on examples with Jetpack Compose Basics"
+    ]
+  },
+  {
+    "id": 6,
+    "title": "State in Compose",
+    "description": "Handle UI state efficiently",
+    "details": "Deep dive into the topic: State in Compose. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to State in Compose",
+      "Use cases of State in Compose in Android",
+      "Best practices for State in Compose",
+      "Common pitfalls in State in Compose",
+      "Hands-on examples with State in Compose"
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Coroutines",
+    "description": "Concurrency made easy with Kotlin Coroutines",
+    "details": "Deep dive into the topic: Coroutines. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Coroutines",
+      "Use cases of Coroutines in Android",
+      "Best practices for Coroutines",
+      "Common pitfalls in Coroutines",
+      "Hands-on examples with Coroutines"
+    ]
+  },
+  {
+    "id": 8,
+    "title": "Flow and StateFlow",
+    "description": "Reactive programming with Flow",
+    "details": "Deep dive into the topic: Flow and StateFlow. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Flow and StateFlow",
+      "Use cases of Flow and StateFlow in Android",
+      "Best practices for Flow and StateFlow",
+      "Common pitfalls in Flow and StateFlow",
+      "Hands-on examples with Flow and StateFlow"
+    ]
+  },
+  {
+    "id": 9,
+    "title": "Room Database",
+    "description": "Store data locally with Room",
+    "details": "Deep dive into the topic: Room Database. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Room Database",
+      "Use cases of Room Database in Android",
+      "Best practices for Room Database",
+      "Common pitfalls in Room Database",
+      "Hands-on examples with Room Database"
+    ]
+  },
+  {
+    "id": 10,
+    "title": "Paging 3",
+    "description": "Efficiently load large datasets",
+    "details": "Deep dive into the topic: Paging 3. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Paging 3",
+      "Use cases of Paging 3 in Android",
+      "Best practices for Paging 3",
+      "Common pitfalls in Paging 3",
+      "Hands-on examples with Paging 3"
+    ]
+  },
+  {
+    "id": 11,
+    "title": "MVVM Architecture",
+    "description": "Clean and scalable architecture",
+    "details": "Deep dive into the topic: MVVM Architecture. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to MVVM Architecture",
+      "Use cases of MVVM Architecture in Android",
+      "Best practices for MVVM Architecture",
+      "Common pitfalls in MVVM Architecture",
+      "Hands-on examples with MVVM Architecture"
+    ]
+  },
+  {
+    "id": 12,
+    "title": "Hilt Dependency Injection",
+    "description": "Use Hilt for DI in Android",
+    "details": "Deep dive into the topic: Hilt Dependency Injection. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Hilt Dependency Injection",
+      "Use cases of Hilt Dependency Injection in Android",
+      "Best practices for Hilt Dependency Injection",
+      "Common pitfalls in Hilt Dependency Injection",
+      "Hands-on examples with Hilt Dependency Injection"
+    ]
+  },
+  {
+    "id": 13,
+    "title": "Retrofit Networking",
+    "description": "Make network calls with Retrofit",
+    "details": "Deep dive into the topic: Retrofit Networking. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Retrofit Networking",
+      "Use cases of Retrofit Networking in Android",
+      "Best practices for Retrofit Networking",
+      "Common pitfalls in Retrofit Networking",
+      "Hands-on examples with Retrofit Networking"
+    ]
+  },
+  {
+    "id": 14,
+    "title": "Json Serialization",
+    "description": "Parse JSON using kotlinx.serialization",
+    "details": "Deep dive into the topic: Json Serialization. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Json Serialization",
+      "Use cases of Json Serialization in Android",
+      "Best practices for Json Serialization",
+      "Common pitfalls in Json Serialization",
+      "Hands-on examples with Json Serialization"
+    ]
+  },
+  {
+    "id": 15,
+    "title": "DataStore Preferences",
+    "description": "Replace SharedPreferences with DataStore",
+    "details": "Deep dive into the topic: DataStore Preferences. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to DataStore Preferences",
+      "Use cases of DataStore Preferences in Android",
+      "Best practices for DataStore Preferences",
+      "Common pitfalls in DataStore Preferences",
+      "Hands-on examples with DataStore Preferences"
+    ]
+  },
+  {
+    "id": 16,
+    "title": "Testing ViewModel",
+    "description": "Write unit tests for ViewModels",
+    "details": "Deep dive into the topic: Testing ViewModel. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Testing ViewModel",
+      "Use cases of Testing ViewModel in Android",
+      "Best practices for Testing ViewModel",
+      "Common pitfalls in Testing ViewModel",
+      "Hands-on examples with Testing ViewModel"
+    ]
+  },
+  {
+    "id": 17,
+    "title": "LiveData vs StateFlow",
+    "description": "Compare LiveData and StateFlow",
+    "details": "Deep dive into the topic: LiveData vs StateFlow. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to LiveData vs StateFlow",
+      "Use cases of LiveData vs StateFlow in Android",
+      "Best practices for LiveData vs StateFlow",
+      "Common pitfalls in LiveData vs StateFlow",
+      "Hands-on examples with LiveData vs StateFlow"
+    ]
+  },
+  {
+    "id": 18,
+    "title": "Jetpack Navigation",
+    "description": "Navigate between screens safely",
+    "details": "Deep dive into the topic: Jetpack Navigation. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Jetpack Navigation",
+      "Use cases of Jetpack Navigation in Android",
+      "Best practices for Jetpack Navigation",
+      "Common pitfalls in Jetpack Navigation",
+      "Hands-on examples with Jetpack Navigation"
+    ]
+  },
+  {
+    "id": 19,
+    "title": "ViewBinding",
+    "description": "Access views without findViewById",
+    "details": "Deep dive into the topic: ViewBinding. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to ViewBinding",
+      "Use cases of ViewBinding in Android",
+      "Best practices for ViewBinding",
+      "Common pitfalls in ViewBinding",
+      "Hands-on examples with ViewBinding"
+    ]
+  },
+  {
+    "id": 20,
+    "title": "Compose Layouts",
+    "description": "Learn Row, Column, Box in Compose",
+    "details": "Deep dive into the topic: Compose Layouts. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Compose Layouts",
+      "Use cases of Compose Layouts in Android",
+      "Best practices for Compose Layouts",
+      "Common pitfalls in Compose Layouts",
+      "Hands-on examples with Compose Layouts"
+    ]
+  },
+  {
+    "id": 21,
+    "title": "ConstraintLayout in Compose",
+    "description": "Use constraints in Compose UI",
+    "details": "Deep dive into the topic: ConstraintLayout in Compose. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to ConstraintLayout in Compose",
+      "Use cases of ConstraintLayout in Compose in Android",
+      "Best practices for ConstraintLayout in Compose",
+      "Common pitfalls in ConstraintLayout in Compose",
+      "Hands-on examples with ConstraintLayout in Compose"
+    ]
+  },
+  {
+    "id": 22,
+    "title": "Lists in Compose",
+    "description": "Display lists using LazyColumn",
+    "details": "Deep dive into the topic: Lists in Compose. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Lists in Compose",
+      "Use cases of Lists in Compose in Android",
+      "Best practices for Lists in Compose",
+      "Common pitfalls in Lists in Compose",
+      "Hands-on examples with Lists in Compose"
+    ]
+  },
+  {
+    "id": 23,
+    "title": "Compose Animations",
+    "description": "Make UIs interactive with animations",
+    "details": "Deep dive into the topic: Compose Animations. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Compose Animations",
+      "Use cases of Compose Animations in Android",
+      "Best practices for Compose Animations",
+      "Common pitfalls in Compose Animations",
+      "Hands-on examples with Compose Animations"
+    ]
+  },
+  {
+    "id": 24,
+    "title": "Handling Permissions",
+    "description": "Request and manage permissions",
+    "details": "Deep dive into the topic: Handling Permissions. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Handling Permissions",
+      "Use cases of Handling Permissions in Android",
+      "Best practices for Handling Permissions",
+      "Common pitfalls in Handling Permissions",
+      "Hands-on examples with Handling Permissions"
+    ]
+  },
+  {
+    "id": 25,
+    "title": "CameraX API",
+    "description": "Integrate camera features",
+    "details": "Deep dive into the topic: CameraX API. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to CameraX API",
+      "Use cases of CameraX API in Android",
+      "Best practices for CameraX API",
+      "Common pitfalls in CameraX API",
+      "Hands-on examples with CameraX API"
+    ]
+  },
+  {
+    "id": 26,
+    "title": "WorkManager",
+    "description": "Schedule background tasks",
+    "details": "Deep dive into the topic: WorkManager. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to WorkManager",
+      "Use cases of WorkManager in Android",
+      "Best practices for WorkManager",
+      "Common pitfalls in WorkManager",
+      "Hands-on examples with WorkManager"
+    ]
+  },
+  {
+    "id": 27,
+    "title": "Foreground Services",
+    "description": "Run long tasks in foreground",
+    "details": "Deep dive into the topic: Foreground Services. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Foreground Services",
+      "Use cases of Foreground Services in Android",
+      "Best practices for Foreground Services",
+      "Common pitfalls in Foreground Services",
+      "Hands-on examples with Foreground Services"
+    ]
+  },
+  {
+    "id": 28,
+    "title": "Broadcast Receivers",
+    "description": "Listen for system events",
+    "details": "Deep dive into the topic: Broadcast Receivers. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Broadcast Receivers",
+      "Use cases of Broadcast Receivers in Android",
+      "Best practices for Broadcast Receivers",
+      "Common pitfalls in Broadcast Receivers",
+      "Hands-on examples with Broadcast Receivers"
+    ]
+  },
+  {
+    "id": 29,
+    "title": "Content Providers",
+    "description": "Access shared app data",
+    "details": "Deep dive into the topic: Content Providers. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Content Providers",
+      "Use cases of Content Providers in Android",
+      "Best practices for Content Providers",
+      "Common pitfalls in Content Providers",
+      "Hands-on examples with Content Providers"
+    ]
+  },
+  {
+    "id": 30,
+    "title": "RecyclerView",
+    "description": "Display scrollable lists",
+    "details": "Deep dive into the topic: RecyclerView. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to RecyclerView",
+      "Use cases of RecyclerView in Android",
+      "Best practices for RecyclerView",
+      "Common pitfalls in RecyclerView",
+      "Hands-on examples with RecyclerView"
+    ]
+  },
+  {
+    "id": 31,
+    "title": "Custom Views",
+    "description": "Draw and handle custom UI components",
+    "details": "Deep dive into the topic: Custom Views. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Custom Views",
+      "Use cases of Custom Views in Android",
+      "Best practices for Custom Views",
+      "Common pitfalls in Custom Views",
+      "Hands-on examples with Custom Views"
+    ]
+  },
+  {
+    "id": 32,
+    "title": "ViewModel SavedState",
+    "description": "Preserve state on process death",
+    "details": "Deep dive into the topic: ViewModel SavedState. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to ViewModel SavedState",
+      "Use cases of ViewModel SavedState in Android",
+      "Best practices for ViewModel SavedState",
+      "Common pitfalls in ViewModel SavedState",
+      "Hands-on examples with ViewModel SavedState"
+    ]
+  },
+  {
+    "id": 33,
+    "title": "Theme and Styling",
+    "description": "Customize app appearance",
+    "details": "Deep dive into the topic: Theme and Styling. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Theme and Styling",
+      "Use cases of Theme and Styling in Android",
+      "Best practices for Theme and Styling",
+      "Common pitfalls in Theme and Styling",
+      "Hands-on examples with Theme and Styling"
+    ]
+  },
+  {
+    "id": 34,
+    "title": "Fonts and Icons",
+    "description": "Add custom fonts and icons",
+    "details": "Deep dive into the topic: Fonts and Icons. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Fonts and Icons",
+      "Use cases of Fonts and Icons in Android",
+      "Best practices for Fonts and Icons",
+      "Common pitfalls in Fonts and Icons",
+      "Hands-on examples with Fonts and Icons"
+    ]
+  },
+  {
+    "id": 35,
+    "title": "Compose Previews",
+    "description": "Preview UIs inside Android Studio",
+    "details": "Deep dive into the topic: Compose Previews. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Compose Previews",
+      "Use cases of Compose Previews in Android",
+      "Best practices for Compose Previews",
+      "Common pitfalls in Compose Previews",
+      "Hands-on examples with Compose Previews"
+    ]
+  },
+  {
+    "id": 36,
+    "title": "Accessibility in Android",
+    "description": "Improve usability for all users",
+    "details": "Deep dive into the topic: Accessibility in Android. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Accessibility in Android",
+      "Use cases of Accessibility in Android in Android",
+      "Best practices for Accessibility in Android",
+      "Common pitfalls in Accessibility in Android",
+      "Hands-on examples with Accessibility in Android"
+    ]
+  },
+  {
+    "id": 37,
+    "title": "App Startup Optimization",
+    "description": "Speed up app launch",
+    "details": "Deep dive into the topic: App Startup Optimization. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to App Startup Optimization",
+      "Use cases of App Startup Optimization in Android",
+      "Best practices for App Startup Optimization",
+      "Common pitfalls in App Startup Optimization",
+      "Hands-on examples with App Startup Optimization"
+    ]
+  },
+  {
+    "id": 38,
+    "title": "Firebase Integration",
+    "description": "Add analytics and crash reporting",
+    "details": "Deep dive into the topic: Firebase Integration. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Firebase Integration",
+      "Use cases of Firebase Integration in Android",
+      "Best practices for Firebase Integration",
+      "Common pitfalls in Firebase Integration",
+      "Hands-on examples with Firebase Integration"
+    ]
+  },
+  {
+    "id": 39,
+    "title": "Push Notifications",
+    "description": "Send notifications to users",
+    "details": "Deep dive into the topic: Push Notifications. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Push Notifications",
+      "Use cases of Push Notifications in Android",
+      "Best practices for Push Notifications",
+      "Common pitfalls in Push Notifications",
+      "Hands-on examples with Push Notifications"
+    ]
+  },
+  {
+    "id": 40,
+    "title": "Deep Links",
+    "description": "Navigate into your app from URLs",
+    "details": "Deep dive into the topic: Deep Links. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Deep Links",
+      "Use cases of Deep Links in Android",
+      "Best practices for Deep Links",
+      "Common pitfalls in Deep Links",
+      "Hands-on examples with Deep Links"
+    ]
+  },
+  {
+    "id": 41,
+    "title": "Splash Screen API",
+    "description": "Create beautiful splash screens",
+    "details": "Deep dive into the topic: Splash Screen API. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Splash Screen API",
+      "Use cases of Splash Screen API in Android",
+      "Best practices for Splash Screen API",
+      "Common pitfalls in Splash Screen API",
+      "Hands-on examples with Splash Screen API"
+    ]
+  },
+  {
+    "id": 42,
+    "title": "Build Variants",
+    "description": "Configure different app builds",
+    "details": "Deep dive into the topic: Build Variants. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Build Variants",
+      "Use cases of Build Variants in Android",
+      "Best practices for Build Variants",
+      "Common pitfalls in Build Variants",
+      "Hands-on examples with Build Variants"
+    ]
+  },
+  {
+    "id": 43,
+    "title": "Product Flavors",
+    "description": "Create different app versions",
+    "details": "Deep dive into the topic: Product Flavors. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Product Flavors",
+      "Use cases of Product Flavors in Android",
+      "Best practices for Product Flavors",
+      "Common pitfalls in Product Flavors",
+      "Hands-on examples with Product Flavors"
+    ]
+  },
+  {
+    "id": 44,
+    "title": "CI/CD with GitHub Actions",
+    "description": "Automate builds and tests",
+    "details": "Deep dive into the topic: CI/CD with GitHub Actions. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to CI/CD with GitHub Actions",
+      "Use cases of CI/CD with GitHub Actions in Android",
+      "Best practices for CI/CD with GitHub Actions",
+      "Common pitfalls in CI/CD with GitHub Actions",
+      "Hands-on examples with CI/CD with GitHub Actions"
+    ]
+  },
+  {
+    "id": 45,
+    "title": "App Bundles",
+    "description": "Smaller APKs with Android App Bundles",
+    "details": "Deep dive into the topic: App Bundles. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to App Bundles",
+      "Use cases of App Bundles in Android",
+      "Best practices for App Bundles",
+      "Common pitfalls in App Bundles",
+      "Hands-on examples with App Bundles"
+    ]
+  },
+  {
+    "id": 46,
+    "title": "Navigation Arguments",
+    "description": "Pass data between destinations",
+    "details": "Deep dive into the topic: Navigation Arguments. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Navigation Arguments",
+      "Use cases of Navigation Arguments in Android",
+      "Best practices for Navigation Arguments",
+      "Common pitfalls in Navigation Arguments",
+      "Hands-on examples with Navigation Arguments"
+    ]
+  },
+  {
+    "id": 47,
+    "title": "Compose Navigation with Hilt",
+    "description": "DI and Navigation together",
+    "details": "Deep dive into the topic: Compose Navigation with Hilt. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Compose Navigation with Hilt",
+      "Use cases of Compose Navigation with Hilt in Android",
+      "Best practices for Compose Navigation with Hilt",
+      "Common pitfalls in Compose Navigation with Hilt",
+      "Hands-on examples with Compose Navigation with Hilt"
+    ]
+  },
+  {
+    "id": 48,
+    "title": "Offline Caching",
+    "description": "Save API data for offline use",
+    "details": "Deep dive into the topic: Offline Caching. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Offline Caching",
+      "Use cases of Offline Caching in Android",
+      "Best practices for Offline Caching",
+      "Common pitfalls in Offline Caching",
+      "Hands-on examples with Offline Caching"
+    ]
+  },
+  {
+    "id": 49,
+    "title": "Jetpack WorkManager",
+    "description": "Manage background tasks",
+    "details": "Deep dive into the topic: Jetpack WorkManager. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Jetpack WorkManager",
+      "Use cases of Jetpack WorkManager in Android",
+      "Best practices for Jetpack WorkManager",
+      "Common pitfalls in Jetpack WorkManager",
+      "Hands-on examples with Jetpack WorkManager"
+    ]
+  },
+  {
+    "id": 50,
+    "title": "Material Design 3",
+    "description": "Use M3 components and theming",
+    "details": "Deep dive into the topic: Material Design 3. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Material Design 3",
+      "Use cases of Material Design 3 in Android",
+      "Best practices for Material Design 3",
+      "Common pitfalls in Material Design 3",
+      "Hands-on examples with Material Design 3"
+    ]
+  },
+  {
+    "id": 51,
+    "title": "AppBar and BottomNav",
+    "description": "Add top and bottom navigation bars",
+    "details": "Deep dive into the topic: AppBar and BottomNav. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to AppBar and BottomNav",
+      "Use cases of AppBar and BottomNav in Android",
+      "Best practices for AppBar and BottomNav",
+      "Common pitfalls in AppBar and BottomNav",
+      "Hands-on examples with AppBar and BottomNav"
+    ]
+  },
+  {
+    "id": 52,
+    "title": "Scoped Storage",
+    "description": "Manage file access securely",
+    "details": "Deep dive into the topic: Scoped Storage. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Scoped Storage",
+      "Use cases of Scoped Storage in Android",
+      "Best practices for Scoped Storage",
+      "Common pitfalls in Scoped Storage",
+      "Hands-on examples with Scoped Storage"
+    ]
+  },
+  {
+    "id": 53,
+    "title": "Glide and Coil",
+    "description": "Load images efficiently",
+    "details": "Deep dive into the topic: Glide and Coil. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Glide and Coil",
+      "Use cases of Glide and Coil in Android",
+      "Best practices for Glide and Coil",
+      "Common pitfalls in Glide and Coil",
+      "Hands-on examples with Glide and Coil"
+    ]
+  },
+  {
+    "id": 54,
+    "title": "MotionLayout",
+    "description": "Create complex animations",
+    "details": "Deep dive into the topic: MotionLayout. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to MotionLayout",
+      "Use cases of MotionLayout in Android",
+      "Best practices for MotionLayout",
+      "Common pitfalls in MotionLayout",
+      "Hands-on examples with MotionLayout"
+    ]
+  },
+  {
+    "id": 55,
+    "title": "Crashlytics",
+    "description": "Track app crashes in production",
+    "details": "Deep dive into the topic: Crashlytics. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Crashlytics",
+      "Use cases of Crashlytics in Android",
+      "Best practices for Crashlytics",
+      "Common pitfalls in Crashlytics",
+      "Hands-on examples with Crashlytics"
+    ]
+  },
+  {
+    "id": 56,
+    "title": "Multimodule Project",
+    "description": "Structure a large app",
+    "details": "Deep dive into the topic: Multimodule Project. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Multimodule Project",
+      "Use cases of Multimodule Project in Android",
+      "Best practices for Multimodule Project",
+      "Common pitfalls in Multimodule Project",
+      "Hands-on examples with Multimodule Project"
+    ]
+  },
+  {
+    "id": 57,
+    "title": "Clean Architecture",
+    "description": "Separate concerns cleanly",
+    "details": "Deep dive into the topic: Clean Architecture. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Clean Architecture",
+      "Use cases of Clean Architecture in Android",
+      "Best practices for Clean Architecture",
+      "Common pitfalls in Clean Architecture",
+      "Hands-on examples with Clean Architecture"
+    ]
+  },
+  {
+    "id": 58,
+    "title": "Unit Testing",
+    "description": "Test logic with JUnit",
+    "details": "Deep dive into the topic: Unit Testing. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Unit Testing",
+      "Use cases of Unit Testing in Android",
+      "Best practices for Unit Testing",
+      "Common pitfalls in Unit Testing",
+      "Hands-on examples with Unit Testing"
+    ]
+  },
+  {
+    "id": 59,
+    "title": "UI Testing with Compose",
+    "description": "Write UI tests",
+    "details": "Deep dive into the topic: UI Testing with Compose. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to UI Testing with Compose",
+      "Use cases of UI Testing with Compose in Android",
+      "Best practices for UI Testing with Compose",
+      "Common pitfalls in UI Testing with Compose",
+      "Hands-on examples with UI Testing with Compose"
+    ]
+  },
+  {
+    "id": 60,
+    "title": "Android TV Guidelines",
+    "description": "Build for larger screens",
+    "details": "Deep dive into the topic: Android TV Guidelines. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Android TV Guidelines",
+      "Use cases of Android TV Guidelines in Android",
+      "Best practices for Android TV Guidelines",
+      "Common pitfalls in Android TV Guidelines",
+      "Hands-on examples with Android TV Guidelines"
+    ]
+  },
+  {
+    "id": 61,
+    "title": "Android Service",
+    "description": "A Service is a component that performs long-running operations in the background without a UI. It continues to run even if the user switches to another app",
+    "details": "Deep dive into the topic: Foreground Services. Learn the underlying principles, best practices, and how to apply them effectively in Android projects.",
+    "subTopics": [
+      "Introduction to Services",
+      "Use cases of Services in Android",
+      "Best practices for Services",
+      "Common pitfalls in Services",
+      "Hands-on examples with Services"
+    ]
+  }
+]
