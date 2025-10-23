@@ -51,7 +51,10 @@ abstract class FamilyTreeDatabase : RoomDatabase() {
                     context.applicationContext,
                     FamilyTreeDatabase::class.java,
                     DATABASE_NAME // Uses the updated name
-                ).build()
+                )
+                    .addMigrations(MIGRATION_1_2)
+                    .build()
+
 
                 val dao = database.familyTreeDao()
 
@@ -76,22 +79,32 @@ abstract class FamilyTreeDatabase : RoomDatabase() {
         val MIGRATION_1_2: Migration = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add new columns to existing topics table
-                db.execSQL("ALTER TABLE topics ADD COLUMN details TEXT NOT NULL DEFAULT ''")
-                db.execSQL("ALTER TABLE topics ADD COLUMN subTopics TEXT NOT NULL DEFAULT '[]'")
-
-                // Create interview_questions table
-                db.execSQL(
-                    """
-            CREATE TABLE IF NOT EXISTS InterviewQuestion (
-                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                topicId INTEGER NOT NULL,
-                question TEXT NOT NULL,
-                answer TEXT NOT NULL
-            )
-        """.trimIndent()
-                )
+                db.execSQL("ALTER TABLE members ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE members  ADD COLUMN updatedBy TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE relations ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE relations  ADD COLUMN updatedBy TEXT NOT NULL DEFAULT ''")
+//                // Create interview_questions table
+//                db.execSQL(
+//                    """
+//            CREATE TABLE IF NOT EXISTS InterviewQuestion (
+//                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+//                topicId INTEGER NOT NULL,
+//                question TEXT NOT NULL,
+//                answer TEXT NOT NULL
+//            )
+//        """.trimIndent()
+//                )
             }
+        }
 
+
+        val MIGRATION_3_4: Migration = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add new columns to existing topics table
+                db.execSQL("ALTER TABLE members ADD COLUMN gotra TEXT NOT NULL DEFAULT 'Khedavdiya'")
+                db.execSQL("ALTER TABLE members ADD COLUMN state TEXT NOT NULL DEFAULT 'Madhya Pradesh'")
+
+            }
         }
     }
 

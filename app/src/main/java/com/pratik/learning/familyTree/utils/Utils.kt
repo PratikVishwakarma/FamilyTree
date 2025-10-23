@@ -9,6 +9,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
+import com.pratik.learning.familyTree.data.local.dto.FamilyMember
+import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.Period
@@ -31,16 +33,48 @@ inline fun <reified T : ViewModel> NavBackStackEntry.sharedViewModel(
 }
 
 
+val isAdmin = true
 
 val genders = listOf(GENDER_TYPE_MALE, GENDER_TYPE_FEMALE)
-val relations = listOf(
-    RELATION_TYPE_FATHER,
-    RELATION_TYPE_MOTHER,
-    RELATION_TYPE_HUSBAND,
-    RELATION_TYPE_WIFE,
-    RELATION_TYPE_SIBLING,
-    RELATION_TYPE_SON,
-    RELATION_TYPE_DAUGHTER)
+val states = listOf(
+    "Andhra Pradesh",
+    "Arunachal Pradesh",
+    "Assam",
+    "Bihar",
+    "Chhattisgarh",
+    "Goa",
+    "Gujarat",
+    "Haryana",
+    "Himachal Pradesh",
+    "Jharkhand",
+    "Karnataka",
+    "Kerala",
+    "Madhya Pradesh",
+    "Maharashtra",
+    "Manipur",
+    "Meghalaya",
+    "Mizoram",
+    "Nagaland",
+    "Odisha",
+    "Punjab",
+    "Rajasthan",
+    "Sikkim",
+    "Tamil Nadu",
+    "Telangana",
+    "Tripura",
+    "Uttar Pradesh",
+    "Uttarakhand",
+    "West Bengal",
+    "Andaman and Nicobar Islands",
+    "Chandigarh",
+    "Dadra and Nagar Haveli and Daman and Diu",
+    "Delhi",
+    "Jammu and Kashmir",
+    "Ladakh",
+    "Lakshadweep",
+    "Puducherry"
+)
+
 
 fun getAvailableRelationsForGender(gender: String): List<String> {
     Log.d("Utils", "getAvailableRelationsForGender for gender: $gender")
@@ -55,9 +89,6 @@ fun getAvailableRelationsForGender(gender: String): List<String> {
     val commonRelations = listOf(
         RELATION_TYPE_MOTHER,
         RELATION_TYPE_FATHER,
-        RELATION_TYPE_SON,
-        RELATION_TYPE_DAUGHTER,
-//        RELATION_TYPE_SIBLING,
     )
 
     return when (gender) {
@@ -82,8 +113,8 @@ fun getIcon(relation: String): String {
     }
 }
 
-fun getRelationInHindi(relation: String): String {
-    return when (relation) {
+fun String.inHindi(): String {
+    return when (this) {
         RELATION_TYPE_FATHER -> "पिता"
         RELATION_TYPE_MOTHER -> "माता"
         RELATION_TYPE_FATHER_IN_LAW -> "ससुर"
@@ -98,7 +129,13 @@ fun getRelationInHindi(relation: String): String {
         RELATION_TYPE_GRANDMOTHER_F -> "दादी जी"
         RELATION_TYPE_GRANDFATHER_M -> "नाना जी"
         RELATION_TYPE_GRANDMOTHER_M -> "नानी जी"
-        else -> "संबंध"
+        GENDER_TYPE_MALE -> "पुरुष"
+        GENDER_TYPE_FEMALE -> "महिला"
+        "Deceased" -> "स्वर्गवासी"
+        "Gotra" -> "गोत्र"
+        "DOB" -> "जन्मदिन"
+        "DOD" -> "मृत्यु दिवस"
+        else -> this
     }
 }
 
@@ -145,10 +182,12 @@ fun calculateAgeFromDob(dobString: String): Int {
 data class MemberFormState(
     val fullName: String = "",
     val dob: String = "",
-    val gender: String = "Male",
+    val gender: String = GENDER_TYPE_MALE,
     val isLiving: Boolean = true,
     val dod: String = "", // Date of Death
     val city: String = "",
+    val state: String = "Madhya Pradesh",
+    val gotra: String = "",
     val mobile: String = ""
 )
 
@@ -161,7 +200,6 @@ data class RelationFormState(
     val relation: String = "",
     val relatedToMemberId: Int = -1,
     val relatedToFullName: String = "",
-    val error: String = "",
 )
 
 
@@ -170,6 +208,7 @@ data class RelationFormState(
  */
 fun showDatePicker(
     context: Context,
+    date: String = "",
     onDateSelected: (String) -> Unit
 ) {
     val calendar = Calendar.getInstance()
@@ -198,3 +237,52 @@ fun showDatePicker(
 
     datePickerDialog.show()
 }
+
+
+fun validateMemberData(member: MemberFormState): String {
+    Log.d("MembersViewModel", "validateData: $member")
+    val error = ""
+    if (member.fullName.isBlank()) {
+        return "Please enter a name"
+    }
+    if (member.fullName.length < 3) {
+        return "Please enter a valid name"
+    }
+    if (member.gotra.isBlank()) {
+        return "Please enter a Gotra"
+    }
+    if (member.gotra.length < 3) {
+        return "Please enter a valid Gotra"
+    }
+    if (member.dob.isBlank()) {
+        return "Please enter a date of birth"
+    }
+
+    if (member.gender.isBlank()) {
+        return "Please select a gender"
+    }
+
+    if (!member.isLiving && member.dod.isBlank()) {
+        return "Please enter a date of death"
+    }
+
+    if (member.city.isBlank()) {
+        return "Please enter a city"
+    }
+
+    if (member.city.length < 3) {
+        return "Please enter a valid city"
+    }
+
+    if (member.state.isBlank()) {
+        return "Please enter a state"
+    }
+
+    if (member.state.length < 3) {
+        return "Please enter a valid state"
+    }
+
+    return error
+}
+
+private const val LAST_SYNC_TIME = "last_sync_time"

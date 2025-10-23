@@ -6,6 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavController
 import com.pratik.learning.familyTree.navigation.AncestryRoute
+import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.DualFamilyTreeViewOriginal
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
 
@@ -17,10 +18,15 @@ fun AncestryScreen(navController: NavController, viewModel: MemberDetailsViewMod
         viewModel.fetchAncestry()
     }
     val familyTree = viewModel.familyTree.collectAsState().value
-    familyTree?.let {
-        val onMemberClick: (Int) -> Unit = { memberId ->
-            navController.navigate(route = AncestryRoute(memberId))
+    Container(
+        title = "Ancestry Tree",
+        rightButton = null
+    ) {
+        familyTree?.let {
+            val onMemberClick: (Int) -> Unit = { memberId ->
+                navController.navigate(route = AncestryRoute(memberId))
+            }
+            DualFamilyTreeViewOriginal(it, onMemberClick)
         }
-        DualFamilyTreeViewOriginal(it, onMemberClick)
     }
 }

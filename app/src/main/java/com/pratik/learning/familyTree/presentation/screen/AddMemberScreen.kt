@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -21,6 +22,7 @@ import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
 import com.pratik.learning.familyTree.utils.MemberFormState
 import com.pratik.learning.familyTree.utils.genders
 import com.pratik.learning.familyTree.utils.showDatePicker
+import com.pratik.learning.familyTree.utils.states
 
 @Composable
 fun AddMemberScreen(
@@ -30,11 +32,12 @@ fun AddMemberScreen(
     val context = LocalContext.current
     var formState by remember { mutableStateOf(MemberFormState()) }
 
-    var expanded by remember { mutableStateOf(false) }
-
+    var genderExpanded by remember { mutableStateOf(false) }
+    var stateExpanded by remember { mutableStateOf(false) }
+    val error = viewModel.error.collectAsState().value
     // Helper lambda to launch the date picker dialog and update state
     val openDatePicker: (Boolean) -> Unit = { isDob ->
-        showDatePicker(context) { newDate ->
+        showDatePicker(context, date = if(isDob) formState.dob else formState.dod) { newDate ->
             formState = if (isDob) {
                 formState.copy(dob = newDate)
             } else {
@@ -59,15 +62,59 @@ fun AddMemberScreen(
             // 1. Full Name
             OutlinedTextField(
                 value = formState.fullName,
+                maxLines = 1,
                 onValueChange = { formState = formState.copy(fullName = it) },
                 label = { Text("Full Name") },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(16.dp))
+            // 1. Gotra
+            OutlinedTextField(
+                value = formState.gotra,
+                maxLines = 1,
+                onValueChange = { formState = formState.copy(gotra = it) },
+                label = { Text("Gotra") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(16.dp))
 
-            // 2. Date of Birth (Clickable to open Date Picker)
+            // 3. Gender Dropdown
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = formState.gender,
+                    onValueChange = { /* Read-only value */ },
+                    maxLines = 1,
+                    label = { Text("Gender") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = "Select Gender",
+                            Modifier.clickable { genderExpanded = true }
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                DropdownMenu(
+                    expanded = genderExpanded,
+                    onDismissRequest = { genderExpanded = false }
+                ) {
+                    genders.forEach { gender ->
+                        DropdownMenuItem(
+                            text = { Text(gender) },
+                            onClick = {
+                                formState = formState.copy(gender = gender)
+                                genderExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            // Date of Birth (Clickable to open Date Picker)
             OutlinedTextField(
                 value = formState.dob,
+                maxLines = 1,
                 onValueChange = { /* Read-only field */ },
                 label = { Text("Date of Birth") },
                 readOnly = true,
@@ -82,41 +129,7 @@ fun AddMemberScreen(
                     .fillMaxWidth()
             )
             Spacer(Modifier.height(16.dp))
-
-            // 3. Gender Dropdown
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = formState.gender,
-                    onValueChange = { /* Read-only value */ },
-                    label = { Text("Gender") },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            Icons.Default.ArrowDropDown,
-                            contentDescription = "Select Gender",
-                            Modifier.clickable { expanded = true }
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    genders.forEach { gender ->
-                        DropdownMenuItem(
-                            text = { Text(gender) },
-                            onClick = {
-                                formState = formState.copy(gender = gender)
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-
-            // 4. Living Status Toggle
+            // Living Status Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -139,6 +152,7 @@ fun AddMemberScreen(
             if (!formState.isLiving) {
                 OutlinedTextField(
                     value = formState.dod,
+                    maxLines = 1,
                     onValueChange = { /* Read-only field */ },
                     label = { Text("Date of Death") },
                     readOnly = true,
@@ -158,21 +172,66 @@ fun AddMemberScreen(
             // 6. City
             OutlinedTextField(
                 value = formState.city,
+                maxLines = 1,
                 onValueChange = { formState = formState.copy(city = it) },
                 label = { Text("City / Place") },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(16.dp))
 
-            // 7. Mobile
+            // 7. State Dropdown
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = formState.state,
+                    onValueChange = { /* Read-only value */ },
+                    label = { Text("State") },
+                    readOnly = true,
+                    maxLines = 1,
+                    trailingIcon = {
+                        Icon(
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = "Select State",
+                            Modifier.clickable { stateExpanded = true }
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                DropdownMenu(
+                    expanded = stateExpanded,
+                    onDismissRequest = { stateExpanded = false }
+                ) {
+                    states.forEach { state ->
+                        DropdownMenuItem(
+                            text = { Text(state) },
+                            onClick = {
+                                formState = formState.copy(state = state)
+                                stateExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+
+            // 8. Mobile
             OutlinedTextField(
                 value = formState.mobile,
-                onValueChange = { formState = formState.copy(mobile = it.filter { it.isDigit() }) },
+                onValueChange = { formState = formState.copy(mobile = it.filter { text -> text.isDigit() }) },
                 label = { Text("Mobile Number") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 1
             )
+            if (error.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                )
+            }
             Spacer(Modifier.height(32.dp))
 
             // Save Button

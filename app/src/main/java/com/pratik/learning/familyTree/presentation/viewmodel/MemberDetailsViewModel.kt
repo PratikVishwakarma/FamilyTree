@@ -1,5 +1,6 @@
 package com.pratik.learning.familyTree.presentation.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +15,7 @@ import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
 import com.pratik.learning.familyTree.utils.GENDER_TYPE_FEMALE
 import com.pratik.learning.familyTree.utils.GENDER_TYPE_MALE
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_BROTHER
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_CHILD
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_DAUGHTER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_FATHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_FATHER_IN_LAW
@@ -24,11 +26,13 @@ import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDMOTHER_M
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_HUSBAND
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER_IN_LAW
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_SIBLING
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_SISTER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_SON
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_WIFE
+import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
+import com.pratik.learning.familyTree.utils.validateMemberData
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,7 +45,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MemberDetailsViewModel @Inject constructor(
-    private val familyTreeRepository: FamilyTreeRepository
+    private val familyTreeRepository: FamilyTreeRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     var memberId = -1
 
@@ -58,6 +63,9 @@ class MemberDetailsViewModel @Inject constructor(
 
     private val _relationList = MutableStateFlow(ArrayList<String>())
     var relationList: StateFlow<ArrayList<String>> = _relationList
+
+    private val _error = MutableStateFlow("")
+    var error: StateFlow<String> = _error
 
 
     fun fetchDetails() {
@@ -85,12 +93,14 @@ class MemberDetailsViewModel @Inject constructor(
                 Log.d("MemberDetailsViewModel", "Member Details: $currentMember")
                 _member.value = MemberFormState(
                     fullName = currentMember!!.fullName,
+                    gotra = currentMember!!.gotra,
                     dob = currentMember!!.dob,
                     gender = currentMember!!.gender,
                     isLiving = currentMember!!.isLiving,
-                    dod = currentMember!!.dod ?: "",
-                    city = currentMember!!.city ?: "",
-                    mobile = currentMember!!.mobile ?: ""
+                    dod = currentMember!!.dod,
+                    city = currentMember!!.city,
+                    state = currentMember!!.state,
+                    mobile = currentMember!!.mobile
                 )
             }
         }
@@ -112,6 +122,7 @@ class MemberDetailsViewModel @Inject constructor(
     private suspend fun getRelations(relations: List<FamilyRelation>) {
         relations.forEach { relation ->
             val memberDetails = familyTreeRepository.getMemberById(relation.relatedMemberId)
+            Log.d("MemberDetailsViewModel", "getRelations for relation: $relation")
             memberDetails?.let {
                 when (relation.relationType) {
                     RELATION_TYPE_FATHER -> {
@@ -138,20 +149,6 @@ class MemberDetailsViewModel @Inject constructor(
                         fetchGrandParents(it, isParental = false)
                     }
 
-                    RELATION_TYPE_SIBLING -> {
-                        if (it.memberId == memberId) return
-                        val broOrSis =
-                            if (it.gender == "M") RELATION_TYPE_BROTHER else RELATION_TYPE_SISTER
-                        _relations.update { current ->
-                            current.copy(
-                                siblings = current.siblings + Pair(
-                                    broOrSis,
-                                    it
-                                )
-                            )
-                        }
-                    }
-
                     RELATION_TYPE_WIFE -> {
                         _relations.update { current ->
                             current.copy(
@@ -161,7 +158,6 @@ class MemberDetailsViewModel @Inject constructor(
                                 )
                             )
                         }
-                        fetchInLawsDetails(it)
                     }
 
                     RELATION_TYPE_HUSBAND -> {
@@ -174,31 +170,14 @@ class MemberDetailsViewModel @Inject constructor(
                             )
                         }
                     }
-
-                    RELATION_TYPE_SON -> {
-                        _relations.update { current ->
-                            current.copy(
-                                children = current.children + Pair(
-                                    RELATION_TYPE_SON,
-                                    it
-                                )
-                            )
-                        }
-                    }
-
-                    RELATION_TYPE_DAUGHTER -> {
-                        _relations.update { current ->
-                            current.copy(
-                                children = current.children + Pair(
-                                    RELATION_TYPE_DAUGHTER,
-                                    it
-                                )
-                            )
-                        }
-                    }
                 }
             }
         }
+        _relations.value.spouse?.let { spouse ->
+            fetchInLawsDetails(spouse.second)
+            fetchChildren()
+        }
+        fetchSiblings()
     }
 
     /**
@@ -212,19 +191,19 @@ class MemberDetailsViewModel @Inject constructor(
             when (parent.first) {
                 RELATION_TYPE_FATHER -> _relations.update { current ->
                     current.copy(
-                        inLaws = current.inLaws + Pair(
+                        inLaws = (current.inLaws + Pair(
                             RELATION_TYPE_FATHER_IN_LAW,
                             parent.second
-                        )
+                        )).distinct()
                     )
                 }
 
                 RELATION_TYPE_MOTHER -> _relations.update { current ->
                     current.copy(
-                        inLaws = current.inLaws + Pair(
+                        inLaws = (current.inLaws + Pair(
                             RELATION_TYPE_MOTHER_IN_LAW,
                             parent.second
-                        )
+                        )).distinct()
                     )
                 }
             }
@@ -250,7 +229,7 @@ class MemberDetailsViewModel @Inject constructor(
                         )
                     } else {
                         current.copy(
-                            grandParentsFather = current.grandParentsMother + Pair(
+                            grandParentsMother = current.grandParentsMother + Pair(
                                 RELATION_TYPE_GRANDFATHER_M,
                                 parent.second
                             )
@@ -268,7 +247,7 @@ class MemberDetailsViewModel @Inject constructor(
                         )
                     } else {
                         current.copy(
-                            grandParentsFather = current.grandParentsMother + Pair(
+                            grandParentsMother = current.grandParentsMother + Pair(
                                 RELATION_TYPE_GRANDMOTHER_M,
                                 parent.second
                             )
@@ -279,12 +258,88 @@ class MemberDetailsViewModel @Inject constructor(
         }
     }
 
+
+    private suspend fun fetchSiblings() {
+        Log.d(
+            "MemberDetailsViewModel",
+            "fetchSiblings for member: ${member.value}"
+        )
+        relations.value.parents.forEach {
+            Log.d("MemberDetailsViewModel", "FetchSiblings: for member: $it")
+            val siblings = familyTreeRepository.getChildren(it.second.memberId)
+            Log.d("MemberDetailsViewModel", "siblings: $siblings")
+            siblings.forEach { sibling ->
+                if (sibling.memberId != memberId) {
+                    Log.d("MemberDetailsViewModel", "sibling: $sibling")
+                    when (sibling.gender) {
+                        GENDER_TYPE_MALE -> _relations.update { current ->
+                            current.copy(
+                                siblings = (current.siblings + Pair(
+                                    RELATION_TYPE_BROTHER,
+                                    sibling
+                                )).distinct()
+                            )
+                        }
+
+                        GENDER_TYPE_FEMALE -> _relations.update { current ->
+                            current.copy(
+                                siblings = (current.siblings + Pair(
+                                    RELATION_TYPE_SISTER,
+                                    sibling
+                                )).distinct()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun fetchChildren() {
+        Log.d(
+            "MemberDetailsViewModel",
+            "fetchChildren for member: ${member.value}"
+        )
+        Log.d("MemberDetailsViewModel", "fetchChildren: for member: $memberId")
+        val children = familyTreeRepository.getChildren(memberId)
+        Log.d("MemberDetailsViewModel", "total children: $children")
+        children.forEach { child ->
+            if (child.memberId != memberId) {
+                Log.d("MemberDetailsViewModel", "child: $child")
+                when (child.gender) {
+                    GENDER_TYPE_MALE -> _relations.update { current ->
+                        current.copy(
+                            children = (current.children + Pair(
+                                RELATION_TYPE_SON,
+                                child
+                            )).distinct()
+                        )
+                    }
+
+                    GENDER_TYPE_FEMALE -> _relations.update { current ->
+                        current.copy(
+                            children = (current.children + Pair(
+                                RELATION_TYPE_DAUGHTER,
+                                child
+                            )).distinct()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+
     fun onMobileChanged(newValue: String) {
         _member.value = _member.value.copy(mobile = newValue.filter { it.isDigit() })
     }
 
     fun onFullNameChanged(newValue: String) {
         _member.value = _member.value.copy(fullName = newValue)
+    }
+
+    fun onGotraChanged(newValue: String) {
+        _member.value = _member.value.copy(gotra = newValue)
     }
 
     fun onGenderChanged(newValue: String) {
@@ -303,21 +358,50 @@ class MemberDetailsViewModel @Inject constructor(
         _member.value = _member.value.copy(isLiving = newValue)
     }
 
+    fun onCityChanged(newValue: String) {
+        _member.value = _member.value.copy(city = newValue)
+    }
+
+    fun onStateChanged(newValue: String) {
+        _member.value = _member.value.copy(state = newValue)
+    }
+
+
+    fun deleteMember(navController: NavController) {
+        viewModelScope.launch(Dispatchers.IO) {
+            familyTreeRepository.deleteMember(memberId)
+            setIsDataUpdateRequired(context, true)
+            withContext(Dispatchers.Main) {
+                navController.popBackStack()
+            }
+        }
+    }
 
     fun updateMember(navController: NavController) {
+        Log.d("MemberDetailsViewModel", "updateMember: ${member.value}")
         viewModelScope.launch(Dispatchers.IO) {
             val familyMember = FamilyMember(
                 memberId = memberId,
                 fullName = member.value.fullName,
+                gotra = member.value.gotra,
                 dob = member.value.dob,
                 gender = member.value.gender,
                 isLiving = member.value.isLiving,
                 dod = member.value.dod,
                 city = member.value.city,
-                mobile = member.value.mobile
+                state = member.value.state,
+                mobile = member.value.mobile,
+                updatedAt = System.currentTimeMillis().toString()
             )
+            val validateMemberData = validateMemberData(member.value)
+            if (validateMemberData.isNotEmpty()) {
+                _error.value = validateMemberData
+                return@launch
+            }
+
             familyTreeRepository.updateMember(familyMember)
             withContext(Dispatchers.Main) {
+                setIsDataUpdateRequired(context, true)
                 navController.navigateUp()
             }
         }
@@ -329,11 +413,16 @@ class MemberDetailsViewModel @Inject constructor(
 
 
     fun createRelation(formState: RelationFormState, isCreate: Boolean = false) {
+        Log.d("MemberDetailsViewModel", "createRelation: $formState")
+        if (formState.relatedToMemberId == -1) return
         viewModelScope.launch(Dispatchers.IO) {
             val newRelations = ArrayList<FamilyRelation>()
             val relationText = ArrayList<String>()
             _relationList.value = ArrayList()
             when (formState.relation) {
+                RELATION_TYPE_CHILD -> {
+
+                }
                 RELATION_TYPE_FATHER, RELATION_TYPE_MOTHER -> {
                     // add parents relation
                     val isFather = formState.relation == RELATION_TYPE_FATHER
@@ -352,24 +441,13 @@ class MemberDetailsViewModel @Inject constructor(
                         )
                     )
 
-                    // related Member's -> Son/Daughter -> Member
-                    val childRelation = if (member.value.gender == GENDER_TYPE_FEMALE) RELATION_TYPE_DAUGHTER else RELATION_TYPE_SON
-                    relationText.add("${formState.relatedToFullName}'s $childRelation - ${member.value.fullName}")
-                    Log.d(
-                        "MemberDetailsViewModel",
-                        "createRelation ${formState.relatedToFullName}'s $childRelation - ${member.value.fullName}"
-                    )
-                    newRelations.add(
-                        FamilyRelation(
-                            relatesToMemberId = formState.relatedToMemberId,
-                            relationType = childRelation,
-                            relatedMemberId = memberId
-                        )
-                    )
-
                     val spouse = familyTreeRepository.getSpouse(formState.relatedToMemberId)
+                    if (spouse == null) {
+                        updateError("${formState.relatedToFullName} विवाहित नहीं है या उनका जीवनसाथी अभी तक नहीं जोड़ा गया है|")
+                        return@launch
+                    }
                     //check is father's spouse exist, then add mother relations also or vice versa
-                    spouse?.let {
+                    spouse.let {
                         relationText.add("${member.value.fullName}'s ${if (isFather) RELATION_TYPE_MOTHER else RELATION_TYPE_FATHER} - ${it.fullName}")
                         Log.d(
                             "MemberDetailsViewModel",
@@ -382,59 +460,6 @@ class MemberDetailsViewModel @Inject constructor(
                                 relationType = if (isFather) RELATION_TYPE_MOTHER else RELATION_TYPE_FATHER,
                                 relatedMemberId = it.memberId
                             )
-                        )
-
-                        // related Member's -> Son/Daughter -> Member' spouse
-                        relationText.add("${it.fullName}'s $childRelation - ${member.value.fullName}")
-                        Log.d(
-                            "MemberDetailsViewModel",
-                            "createRelation ${it.fullName}'s $childRelation - ${member.value.fullName}"
-                        )
-                        newRelations.add(
-                            FamilyRelation(
-                                relatesToMemberId = it.memberId,
-                                relationType = childRelation,
-                                relatedMemberId = memberId
-                            )
-                        )
-                    }
-
-
-                    // check is father's children exist, then add all children relations as sibling
-                    val children = familyTreeRepository.getChildren(formState.relatedToMemberId) + relations.value.children.map { it.second }
-                    if (children.isNotEmpty()) {
-                        children.forEach { sibling ->
-                            // member's -> Sibling -> related Member
-                            relationText.add("${member.value.fullName}'s Sibling - ${sibling.fullName}")
-                            Log.d(
-                                "MemberDetailsViewModel",
-                                "createRelation ${member.value.fullName}'s sibling ${sibling.fullName}"
-                            )
-                            newRelations.add(
-                                FamilyRelation(
-                                    relatesToMemberId = memberId,
-                                    relationType = RELATION_TYPE_SIBLING,
-                                    relatedMemberId = sibling.memberId
-                                )
-                            )
-                            // member's -> Sibling -> related Member
-                            relationText.add("${sibling.fullName}'s Sibling - ${member.value.fullName}")
-                            Log.d(
-                                "MemberDetailsViewModel",
-                                "createRelation ${sibling.fullName}'s Sibling - ${member.value.fullName}"
-                            )
-                            newRelations.add(
-                                FamilyRelation(
-                                    relatesToMemberId = sibling.memberId,
-                                    relationType = RELATION_TYPE_SIBLING,
-                                    relatedMemberId = memberId
-                                )
-                            )
-                        }
-                    } else {
-                        Log.d(
-                            "MemberDetailsViewModel",
-                            "${member.value.fullName}'s have no siblings to add"
                         )
                     }
                 }
@@ -473,149 +498,13 @@ class MemberDetailsViewModel @Inject constructor(
                             relatedMemberId = memberId
                         )
                     )
-
-
-                    //don't need this now until spouse is not added, then can't add children
-                      // check if any member have children then add all children to other if not already
-//
-//                    // check is father's children exist, then add all children relations as sibling
-//                    val children = familyTreeRepository.getChildren(formState.relatedToMemberId) + relations.value.children.map { it.second }
-//                    if (children.isNotEmpty()) {
-//                        children.forEach { child ->
-//                            val relationWithChild =
-//                                if (child.gender == "M") RELATION_TYPE_SON else RELATION_TYPE_DAUGHTER
-//                            relationText.add("$relationWithChild - ${child.fullName}")
-//                            Log.d(
-//                                "MemberDetailsViewModel",
-//                                "createRelation ${member.value.fullName}'s $relationWithChild ${child.fullName}"
-//                            )
-//                            newRelations.add(
-//                                FamilyRelation(
-//                                    relatesToMemberId = memberId,
-//                                    relationType = relationWithChild,
-//                                    relatedMemberId = child.memberId
-//                                )
-//                            )
-//                        }
-//                    } else {
-//                        Log.d(
-//                            "MemberDetailsViewModel",
-//                            "${member.value.fullName}'s have no children to add"
-//                        )
-//                    }
-                }
-
-                RELATION_TYPE_DAUGHTER, RELATION_TYPE_SON -> {
-                    // member's -> Son/Daughter -> related Member
-                    relationText.add("${member.value.fullName}'s ${formState.relation} - ${formState.relatedToFullName}")
-                    Log.d(
-                        "MemberDetailsViewModel",
-                        "createRelation ${member.value.fullName}'s ${formState.relation} - ${formState.relatedToFullName}"
-                    )
-                    newRelations.add(
-                        FamilyRelation(
-                            relatesToMemberId = memberId,
-                            relationType = formState.relation,
-                            relatedMemberId = formState.relatedToMemberId
-                        )
-                    )
-
-                    // related Member's -> Father/Mother -> Member
-                    val mfRelation = if (member.value.gender == "M") RELATION_TYPE_FATHER else RELATION_TYPE_MOTHER
-                    relationText.add("${formState.relatedToFullName}'s $mfRelation - ${member.value.fullName}")
-                    Log.d(
-                        "MemberDetailsViewModel",
-                        "${formState.relatedToFullName}'s $mfRelation - ${member.value.fullName}"
-                    )
-                    newRelations.add(
-                        FamilyRelation(
-                            relatesToMemberId = formState.relatedToMemberId,
-                            relationType = mfRelation,
-                            relatedMemberId = memberId
-                        )
-                    )
-
-                    // now add other parent relations
-                    // ex Pratik's -> Son -> Shritik then also add Pratik's spouse -> Son -> Shritik
-
-                    if (relations.value.spouse != null) {
-                        val spouse = relations.value.spouse!!.second
-                        val mfRelationInner = if (spouse.gender == "M") RELATION_TYPE_FATHER else RELATION_TYPE_MOTHER
-                        relationText.add("${formState.relatedToFullName}'s $mfRelationInner - ${spouse.fullName}")
-                        Log.d(
-                            "MemberDetailsViewModel",
-                            "createRelation ${formState.relatedToFullName}'s $mfRelationInner - ${spouse.fullName}"
-                        )
-                        // member's spouse -> Father/Mother -> related Member
-                        newRelations.add(
-                            FamilyRelation(
-                                relatesToMemberId = spouse.memberId,
-                                relationType = mfRelationInner,
-                                relatedMemberId = formState.relatedToMemberId
-                            )
-                        )
-
-                        // member's spouse -> Son/Daughter -> Member
-                        relationText.add("${spouse.fullName}'s ${formState.relation} - ${formState.relatedToFullName}")
-                        newRelations.add(
-                            FamilyRelation(
-                                relatesToMemberId = spouse.memberId,
-                                relationType = mfRelation,
-                                relatedMemberId = formState.relatedToMemberId
-                            )
-                        )
-                    }
-
-                    // now add other children relations
-                    // ex Pratik's -> Son -> Shritik and Pratik's already have a daughter Shritika then also add Shritik's -> Sibling -> Shritika
-
-                    if (relations.value.children.isNotEmpty()) {
-                        val children = relations.value.children.distinct()
-                        children.forEach { child ->
-                            val sibling = child.second
-                            val relationWithChild =
-                                if (sibling.gender == "M") RELATION_TYPE_BROTHER else RELATION_TYPE_SISTER
-
-                            // member's children -> Sibling -> related member
-                            relationText.add("${formState.relatedToFullName}'s $relationWithChild ${sibling.fullName}")
-                            Log.d(
-                                "MemberDetailsViewModel",
-                                "createRelation ${formState.relatedToFullName}'s $relationWithChild ${sibling.fullName}"
-                            )
-                            newRelations.add(
-                                FamilyRelation(
-                                    relatesToMemberId = formState.relatedToMemberId,
-                                    relationType = RELATION_TYPE_SIBLING,
-                                    relatedMemberId = sibling.memberId
-                                )
-                            )
-
-                            // related member -> Sibling ->  member's children
-                            relationText.add("${sibling.fullName}'s $relationWithChild ${formState.relatedToFullName}")
-                            Log.d(
-                                "MemberDetailsViewModel",
-                                "createRelation ${sibling.fullName}'s $relationWithChild ${formState.relatedToFullName}"
-                            )
-                            newRelations.add(
-                                FamilyRelation(
-                                    relatesToMemberId = sibling.memberId,
-                                    relationType = RELATION_TYPE_SIBLING,
-                                    relatedMemberId = formState.relatedToMemberId
-                                )
-                            )
-                        }
-                    } else {
-                        Log.d(
-                            "MemberDetailsViewModel",
-                            "${member.value.fullName}'s have no sibling to add"
-                        )
-                    }
                 }
             }
             _relationList.value = relationText
             if (isCreate) {
                 val filter = newRelations.filter { it.relatedMemberId != it.relatesToMemberId }
                 familyTreeRepository.insertAllRelation(filter)
+                setIsDataUpdateRequired(context, true)
             }
         }
     }
@@ -624,23 +513,25 @@ class MemberDetailsViewModel @Inject constructor(
     fun checkRelationValidity(
         relation: String,
         selectedPerson: Pair<Int, String>? = null
-    ): String {
-
+    ) {
+        var error = ""
         if (relation.isEmpty()) {
-            return "Please select a relation"
-        }
-        if (relation == RELATION_TYPE_SON || relation == RELATION_TYPE_DAUGHTER) {
-            if (relations.value.spouse == null) {
-                return "Please add wife first before adding children"
-            }
+            error = "Please select a relation"
+            _relationList.value = ArrayList()
         }
         if (selectedPerson == null) {
-            return "Please select a related person"
+            error = "Please select a related person"
+            _relationList.value = ArrayList()
         }
-        if (memberId == selectedPerson.first) {
-            return "Person cannot be related to themselves"
+        if (memberId == selectedPerson?.first) {
+            error = "Person cannot be related to themselves"
+            _relationList.value = ArrayList()
         }
-
-        return ""
+        updateError(error)
     }
+
+    private fun updateError(error: String) {
+        _error.value = error
+    }
+
 }

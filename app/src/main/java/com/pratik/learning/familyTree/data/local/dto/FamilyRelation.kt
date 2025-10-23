@@ -37,5 +37,8 @@ data class FamilyRelation(
     val relatedMemberId: Int,
 
     // Type of relation (e.g., "Father", "Mother", "Husband", "Sibling")
-    val relationType: String
+    val relationType: String,
+
+    val updatedAt: String = System.currentTimeMillis().toString(),
+    val updatedBy: String = ""
 )

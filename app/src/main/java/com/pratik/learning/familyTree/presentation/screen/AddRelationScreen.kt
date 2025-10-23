@@ -1,5 +1,6 @@
 package com.pratik.learning.familyTree.presentation.screen
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +48,7 @@ fun AddRelationScreen(
 ) {
     var formState by remember { mutableStateOf(RelationFormState()) }
     val member = detailViewModel.member.collectAsState().value
+    val error = detailViewModel.error.collectAsState().value
     val relationList = detailViewModel.relationList.collectAsState().value
 
     var expanded by remember { mutableStateOf(false) }
@@ -54,22 +56,21 @@ fun AddRelationScreen(
 
     LaunchedEffect(selectedPerson) {
         formState = formState.copy(relation = relation)
-        val error = detailViewModel.checkRelationValidity(
+        detailViewModel.checkRelationValidity(
             relation,
             mSelectedPerson
         )
         mSelectedPerson = selectedPerson
-        if (error.isEmpty()) {
-            formState = formState.copy(
-                relation = relation,
-                relatedToFullName = mSelectedPerson?.second ?: "",
-                relatedToMemberId = mSelectedPerson?.first ?: -1,
-                relatesToFullName = member.fullName,
-                relatesToMemberId = detailViewModel.memberId
-            )
-            detailViewModel.createRelation(formState)
-        }
-        formState = formState.copy(error = error)
+        if (selectedPerson?.first == detailViewModel.memberId)
+            return@LaunchedEffect
+        formState = formState.copy(
+            relation = relation,
+            relatedToFullName = mSelectedPerson?.second ?: "",
+            relatedToMemberId = mSelectedPerson?.first ?: -1,
+            relatesToFullName = member.fullName,
+            relatesToMemberId = detailViewModel.memberId
+        )
+        detailViewModel.createRelation(formState)
     }
 
     Container(
@@ -122,7 +123,7 @@ fun AddRelationScreen(
                             onClick = {
                                 if (relation == formState.relation) return@DropdownMenuItem
                                 formState = formState.copy(relation = relation)
-                                formState = formState.copy(error = detailViewModel.checkRelationValidity(relation = relation))
+                                detailViewModel.checkRelationValidity(relation = relation)
 
                                 mSelectedPerson = Pair(-1, "")
 
@@ -140,9 +141,7 @@ fun AddRelationScreen(
 
                 OutlinedTextField(
                     value = mSelectedPerson?.second ?: "Select Member",
-                    onValueChange = {
-                        formState = formState.copy(error = "")
-                    },
+                    onValueChange = { /* Read-only value */ },
                     label = { Text("Member") },
                     readOnly = true,
                     trailingIcon = {
@@ -157,10 +156,10 @@ fun AddRelationScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            if (formState.error.isNotEmpty()) {
+            if (error.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = formState.error,
+                    text = error,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Normal,
                         color = MaterialTheme.colorScheme.onErrorContainer
@@ -186,19 +185,15 @@ fun AddRelationScreen(
                 }
             }
             Spacer(Modifier.height(32.dp))
-
+            Log.d("AddRelationScreen"," error: $error")
             // Save Relation
-            if (formState.relatedToMemberId != -1 && formState.relation.isNotEmpty()) {
+            if (formState.relatedToMemberId != -1 && formState.relation.isNotEmpty() && error.isEmpty()) {
                 Button(
                     onClick = {
-                        val error = detailViewModel.checkRelationValidity(
+                        detailViewModel.checkRelationValidity(
                             relation,
                             mSelectedPerson
                         )
-                        if (error.isNotEmpty()) {
-                            formState = formState.copy(error = error)
-                            return@Button
-                        }
 
                         formState = formState.copy(
                             relation = relation,

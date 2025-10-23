@@ -10,16 +10,19 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "members")
 data class FamilyMember(
     // Primary key, auto-generated for new members
-    @PrimaryKey(autoGenerate = true)
-    val memberId: Int = 0,
-
+    @PrimaryKey
+    var memberId: Int = 0,
     val fullName: String,
     val gender: String, // "M" or "F"
     val dob: String, // Date of Birth (ISO format "YYYY-MM-DD")
     val isLiving: Boolean,
-    val dod: String?, // Date of Death (Nullable)
-    val city: String?,
-    val mobile: String?,
+    val dod: String="", // Date of Death (Nullable)
+    val city: String="",
+    val state: String ="",
+    val mobile: String ="",
+    val gotra: String ="",
+    val updatedAt: String = System.currentTimeMillis().toString(),
+    val updatedBy: String = ""
 )
 
 
@@ -34,9 +37,11 @@ data class MemberWithFather(
     val gender: String,
     val dob: String,
     val isLiving: Boolean,
-    val dod: String?,
-    val city: String?,
-    val mobile: String?,
+    val dod: String,
+    val city: String="",
+    val state: String ="",
+    val mobile: String ="",
+    val gotra: String ="",
 
     // Field from the JOIN operation (the father's name)
     val fatherFullName: String?

@@ -11,6 +11,10 @@ interface FamilyTreeRepository {
 
     val allMembers: Flow<List<FamilyMember>>
 
+    suspend fun downloadDataFromServer(): Boolean
+
+    suspend fun syncDataToFirebase()
+
     suspend fun insertAllMembers(members: List<FamilyMember>)
 
     suspend fun insertMember(member: FamilyMember): Long
@@ -30,7 +34,7 @@ interface FamilyTreeRepository {
 
     suspend fun getMemberById(id: Int): FamilyMember?
 
-    fun getPagedMembersForSearchByName(name: String): Flow<PagingData<MemberWithFather>>
+    fun getPagedMembersForSearchByName(name: String, isUnmarried: Boolean = false): Flow<PagingData<MemberWithFather>>
 
     suspend fun getSpouse(memberId: Int): FamilyMember?
 
@@ -39,5 +43,9 @@ interface FamilyTreeRepository {
     suspend fun getFullAncestorTree(memberId: Int): DualAncestorTree?
 
     suspend fun getParentsWithMemberId(memberId: Int): List<Pair<String, FamilyMember>>
+
+    suspend fun verifyInternetAccess(): Boolean
+
+    suspend fun isNoDataAndNoInternet(): Boolean
 
 }

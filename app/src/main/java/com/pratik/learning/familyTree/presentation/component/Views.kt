@@ -1,5 +1,6 @@
 package com.pratik.learning.familyTree.presentation.component
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -33,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pratik.learning.familyTree.R
 import com.pratik.learning.familyTree.utils.calculateAgeFromDob
 import com.pratik.learning.familyTree.data.local.dto.AncestorNode
 import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
@@ -48,7 +52,7 @@ import com.pratik.learning.familyTree.utils.MemberFormState
 import com.pratik.learning.familyTree.utils.formatIsoDate
 import com.pratik.learning.familyTree.utils.getFirstName
 import com.pratik.learning.familyTree.utils.getIcon
-import com.pratik.learning.familyTree.utils.getRelationInHindi
+import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.getSurname
 
 
@@ -89,6 +93,7 @@ fun Container(
 @Composable
 fun TopicTile(
     title: String,
+    memberId: Int,
     description: String,
     onClick: () -> Unit
 ) {
@@ -100,19 +105,21 @@ fun TopicTile(
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -348,6 +355,15 @@ fun CoupleCard(
 }
 
 @Composable
+fun InfoRow(icon: String, text: String, style: TextStyle, modifier: Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+        Text(text = icon, fontSize = 18.sp)
+        Spacer(Modifier.width(8.dp))
+        Text(text = text, style = style)
+    }
+}
+
+@Composable
 fun MemberInfoSection(member: MemberFormState) {
     val iconModifier = Modifier.size(18.dp).padding(end = 6.dp)
     val textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -364,29 +380,21 @@ fun MemberInfoSection(member: MemberFormState) {
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        InfoRow("👤", "Gender: ${member.gender}", textStyle, iconModifier)
-        InfoRow("🎂", "DOB: ${formatIsoDate(member.dob)} (${calculateAgeFromDob(member.dob)} years)", textStyle, iconModifier)
+        InfoRow("🌳", "${"Gotra".inHindi()}: ${member.gotra}", textStyle, iconModifier)
+        InfoRow("👤", "Gender: ${member.gender.inHindi()}", textStyle, iconModifier)
+        InfoRow("🎂", "${"DOB".inHindi()}: ${formatIsoDate(member.dob)} (${calculateAgeFromDob(member.dob)} years)", textStyle, iconModifier)
         if (!member.isLiving) {
-            InfoRow("🕯️", "DOD: ${formatIsoDate(member.dod)}", textStyle, iconModifier)
+            InfoRow("🕯️", "${"DOD".inHindi()}: ${formatIsoDate(member.dod)}", textStyle, iconModifier)
         }
-        InfoRow("📍", "City: ${member.city}", textStyle, iconModifier)
+        InfoRow("📍", "Place: ${member.city}", textStyle, iconModifier)
         if (member.mobile.isNotEmpty()) {
             InfoRow("📞", "Mobile: ${member.mobile}", textStyle, iconModifier)
         }
         InfoRow(
             if (member.isLiving) "💚" else "🕊️",
-            "Status: ${if (member.isLiving) "Living" else "Deceased"}",
+            "Status: ${if (member.isLiving) "Living".inHindi() else "Deceased".inHindi()}",
             textStyle, iconModifier
         )
-    }
-}
-
-@Composable
-fun InfoRow(icon: String, text: String, style: TextStyle, modifier: Modifier) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
-        Text(text = icon, fontSize = 18.sp)
-        Spacer(Modifier.width(8.dp))
-        Text(text = text, style = style)
     }
 }
 
@@ -397,6 +405,7 @@ fun RelationGroup(
     members: List<Pair<String, FamilyMember>>,
     onMemberClick: (FamilyMember) -> Unit
 ) {
+    println("RelationGroup: $title  members: $members")
     if (members.isEmpty()) return
 
     val dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
@@ -434,11 +443,39 @@ fun RelationItem(member: Pair<String, FamilyMember>, onClick: (FamilyMember) -> 
         Text(text = icon, style =/**/ MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
         Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(text = "${getRelationInHindi(member.first)} - ${member.second.fullName}", style = MaterialTheme.typography.bodyLarge)
+            Text(text = "${member.first.inHindi()} - ${member.second.fullName}", style = MaterialTheme.typography.bodyLarge)
             Text(
                 text = member.second.city?:"",
                 style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
             )
+        }
+    }
+}
+
+@Composable
+fun NoInternetScreen(onRetry: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF1E88E5))
+            .padding(12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_no_internet), // add icon in drawable
+                contentDescription = "No Internet",
+                modifier = Modifier.size(120.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "No Internet Connection, Please check your connection",
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = onRetry) {
+                Text(text = "Retry")
+            }
         }
     }
 }

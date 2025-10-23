@@ -18,18 +18,26 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.navigation.AddRelationRoute
 import com.pratik.learning.familyTree.navigation.AncestryRoute
 import com.pratik.learning.familyTree.navigation.EditMemberRoute
+import com.pratik.learning.familyTree.navigation.MemberDetailsRoute
 import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.MemberInfoSection
 import com.pratik.learning.familyTree.presentation.component.RelationGroup
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
+import com.pratik.learning.familyTree.utils.isAdmin
 
 @Composable
 fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsViewModel) {
 
-    LaunchedEffect(key1 = true) {
+    val onMemberClick: (FamilyMember) -> Unit = { member ->
+        if (member.memberId != viewModel.memberId) {
+            navController.navigate(route = MemberDetailsRoute(member.memberId))
+        }
+    }
+    LaunchedEffect(Unit) {
         Log.d("DetailsScreen", "LaunchedEffect")
         viewModel.fetchDetails()
     }
@@ -39,11 +47,12 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
     Container(
         title = "Member Details",
         rightButton = {
-            Text(
-                "Edit",
-                modifier = Modifier.clickable { navController.navigate(EditMemberRoute(viewModel.memberId)) },
-                style = MaterialTheme.typography.titleMedium
-            )
+            if (isAdmin)
+                Text(
+                    "Edit",
+                    modifier = Modifier.clickable { navController.navigate(EditMemberRoute(viewModel.memberId)) },
+                    style = MaterialTheme.typography.titleMedium
+                )
         }
     ) {
         LazyColumn(
@@ -64,36 +73,57 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
 
             // Relations
             item {
-                RelationGroup("Parents " , relations.parents) {}
-                RelationGroup("Spouse", relations.spouse?.let { listOf(it) } ?: emptyList()) {}
-                RelationGroup("In-Laws", relations.inLaws) {}
-                RelationGroup("Siblings", relations.siblings) {}
-                RelationGroup("Children", relations.children) {}
-                RelationGroup("Grandchildren", relations.grandchildren) {}
-                RelationGroup("Grandparents ", relations.grandParentsFather) {}
-                RelationGroup("Grandparents ", relations.grandParentsMother) {}
+                RelationGroup("Parents ", relations.parents, onMemberClick)
+                RelationGroup(
+                    "Spouse",
+                    relations.spouse?.let { listOf(it) } ?: emptyList(),
+                    onMemberClick)
+                RelationGroup("In-Laws", relations.inLaws, onMemberClick)
+                RelationGroup("Siblings", relations.siblings, onMemberClick)
+                RelationGroup("Children", relations.children, onMemberClick)
+                RelationGroup("Grandchildren", relations.grandchildren, onMemberClick)
+                RelationGroup("Grandparents ", relations.grandParentsFather, onMemberClick)
+                RelationGroup("Grandparents ", relations.grandParentsMother, onMemberClick)
             }
             // Add Relation
             item {
-                Spacer(Modifier.height(32.dp))
-                Button(
-                    onClick = {
-                        navController.navigate(route = AddRelationRoute(viewModel.memberId))
-                    },
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
-                ) {
-                    Text("Add Relation")
-                }
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = {
                         navController.navigate(route = AncestryRoute(viewModel.memberId))
                     },
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
                 ) {
                     Text("See Ancestry")
                 }
                 Spacer(Modifier.height(16.dp))
+                if (isAdmin) {
+                    Spacer(Modifier.height(32.dp))
+                    Button(
+                        onClick = {
+                            navController.navigate(route = AddRelationRoute(viewModel.memberId))
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                    ) {
+                        Text("Add Relation")
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            viewModel.deleteMember(navController)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                    ) {
+                        Text("❌ Delete Member")
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
             }
         }
     }
