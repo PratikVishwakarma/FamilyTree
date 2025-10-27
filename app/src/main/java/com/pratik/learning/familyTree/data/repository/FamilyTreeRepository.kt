@@ -1,15 +1,21 @@
 package com.pratik.learning.familyTree.data.repository
 
 import androidx.paging.PagingData
+import com.pratik.learning.familyTree.data.local.dto.DescendantNode
 import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
+import com.pratik.learning.familyTree.data.local.dto.FullFamilyTree
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import kotlinx.coroutines.flow.Flow
 
 interface FamilyTreeRepository {
 
     val allMembers: Flow<List<FamilyMember>>
+
+    suspend fun downloadDataFromServer(): Boolean
+
+    suspend fun syncDataToFirebase(isAlsoDownload: Boolean = false)
 
     suspend fun insertAllMembers(members: List<FamilyMember>)
 
@@ -18,6 +24,8 @@ interface FamilyTreeRepository {
     suspend fun updateMember(member: FamilyMember)
 
     suspend fun deleteMember(id: Int)
+
+    suspend fun deleteAllRelations(id: Int)
 
     // Relations operations
     suspend fun getRelationsForMember(memberId: Int): Flow<List<FamilyRelation>>
@@ -30,7 +38,7 @@ interface FamilyTreeRepository {
 
     suspend fun getMemberById(id: Int): FamilyMember?
 
-    fun getPagedMembersForSearchByName(name: String): Flow<PagingData<MemberWithFather>>
+    fun getPagedMembersForSearchByName(name: String, isUnmarried: Boolean = false): Flow<PagingData<MemberWithFather>>
 
     suspend fun getSpouse(memberId: Int): FamilyMember?
 
@@ -38,6 +46,14 @@ interface FamilyTreeRepository {
 
     suspend fun getFullAncestorTree(memberId: Int): DualAncestorTree?
 
+    suspend fun getCompleteFamilyTree(memberId: Int): FullFamilyTree?
+
+    suspend fun getFullDescendantTree(memberId: Int): DescendantNode?
+
     suspend fun getParentsWithMemberId(memberId: Int): List<Pair<String, FamilyMember>>
+
+    suspend fun verifyInternetAccess(): Boolean
+
+    suspend fun isNoDataAndNoInternet(): Boolean
 
 }

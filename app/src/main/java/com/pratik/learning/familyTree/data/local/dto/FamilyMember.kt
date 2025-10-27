@@ -10,16 +10,20 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "members")
 data class FamilyMember(
     // Primary key, auto-generated for new members
-    @PrimaryKey(autoGenerate = true)
-    val memberId: Int = 0,
-
+    @PrimaryKey
+    var memberId: Int = 0,
     val fullName: String,
     val gender: String, // "M" or "F"
     val dob: String, // Date of Birth (ISO format "YYYY-MM-DD")
     val isLiving: Boolean,
-    val dod: String?, // Date of Death (Nullable)
-    val city: String?,
-    val mobile: String?,
+    val dod: String="", // Date of Death (Nullable)
+    val city: String="",
+    val state: String ="",
+    val mobile: String ="",
+    val gotra: String ="",
+    val updatedAt: String = System.currentTimeMillis().toString(),
+    val updatedBy: String = "",
+    var isNewEntry: Boolean = false
 )
 
 
@@ -34,12 +38,16 @@ data class MemberWithFather(
     val gender: String,
     val dob: String,
     val isLiving: Boolean,
-    val dod: String?,
-    val city: String?,
-    val mobile: String?,
+    val dod: String,
+    val city: String="",
+    val state: String ="",
+    val mobile: String ="",
+    val gotra: String ="",
 
     // Field from the JOIN operation (the father's name)
-    val fatherFullName: String?
+    val fatherFullName: String?,
+    // Field from the JOIN operation (the father's name)
+    val husbandFullName: String?
 )
 
 data class DualAncestorTree(
@@ -56,6 +64,22 @@ data class AncestorNode(
     val relationWithMember: String = ""
 )
 
+data class FullFamilyTree(
+    val self: FamilyMember,
+    val spouse: FamilyMember? = null,
+    val ancestors: DualAncestorTree? = null,
+    val descendants: DescendantNode? = null
+)
+
+data class DescendantNode(
+    val member: FamilyMember,
+    val spouse: FamilyMember? = null,
+    val children: List<DescendantNode> = emptyList(),
+    val level: Int,
+    val relationWithMember: String
+)
+
+
 data class MemberRelations(
     val parents: List<Pair<String, FamilyMember>> = emptyList(),
     val spouse: Pair<String, FamilyMember>? = null,
@@ -66,3 +90,4 @@ data class MemberRelations(
     val grandParentsFather: List<Pair<String, FamilyMember>> = emptyList(),
     val grandParentsMother: List<Pair<String, FamilyMember>> = emptyList(),
 )
+

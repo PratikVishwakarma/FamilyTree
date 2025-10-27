@@ -1,5 +1,6 @@
 package com.pratik.learning.familyTree.presentation.screen
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,51 +33,64 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.pratik.learning.familyTree.navigation.Home
+import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import com.pratik.learning.familyTree.presentation.component.Container
+import com.pratik.learning.familyTree.presentation.component.MemberSearchPicker
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
+import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
 import com.pratik.learning.familyTree.utils.RelationFormState
 import com.pratik.learning.familyTree.utils.getAvailableRelationsForGender
+import com.pratik.learning.familyTree.utils.inHindi
+import com.pratik.learning.familyTree.utils.relationTextInHindi
 
 @Composable
 fun AddRelationScreen(
+    membersViewModel: MembersViewModel,
     detailViewModel: MemberDetailsViewModel,
     navController: NavController,
-    selectedPerson: Pair<Int, String>?,
-    relation: String = ""
 ) {
     var formState by remember { mutableStateOf(RelationFormState()) }
     val member = detailViewModel.member.collectAsState().value
+    val error = detailViewModel.error.collectAsState().value
     val relationList = detailViewModel.relationList.collectAsState().value
 
     var expanded by remember { mutableStateOf(false) }
-    var mSelectedPerson by remember { mutableStateOf(selectedPerson) }
 
-    LaunchedEffect(selectedPerson) {
-        formState = formState.copy(relation = relation)
-        val error = detailViewModel.checkRelationValidity(
-            relation,
-            mSelectedPerson
+    var showPicker by remember { mutableStateOf(false) }
+    var selectedMember by remember { mutableStateOf<MemberWithFather?>(null) }
+
+    LaunchedEffect(selectedMember) {
+        detailViewModel.checkRelationValidity(
+            formState.relation,
+            selectedMember
         )
-        mSelectedPerson = selectedPerson
-        if (error.isEmpty()) {
-            formState = formState.copy(
-                relation = relation,
-                relatedToFullName = mSelectedPerson?.second ?: "",
-                relatedToMemberId = mSelectedPerson?.first ?: -1,
-                relatesToFullName = member.fullName,
-                relatesToMemberId = detailViewModel.memberId
-            )
-            detailViewModel.createRelation(formState)
-        }
-        formState = formState.copy(error = error)
+        if (selectedMember?.memberId == detailViewModel.memberId)
+            return@LaunchedEffect
+        formState = formState.copy(
+            relatedToFullName = selectedMember?.fullName ?: "",
+            relatedToMemberId = selectedMember?.memberId ?: -1,
+            relatesToFullName = member.fullName,
+            relatesToMemberId = detailViewModel.memberId
+        )
+        detailViewModel.createRelation(formState)
     }
 
     Container(
-        title = "Add Relation",
+        title = "Add Relation".inHindi(),
         rightButton = null
     ) {
-
+        if (showPicker) {
+            membersViewModel.relationType = formState.relation
+            membersViewModel.relatedMembers = detailViewModel.getAllRelatedMemberIds()
+            MemberSearchPicker(
+                title = "${member.fullName}' ${formState.relation.relationTextInHindi()}",
+                viewModel = membersViewModel,
+                onMemberSelected = {
+                    selectedMember = it
+                },
+                onDismissRequest = { showPicker = false }
+            )
+        }
         // Use a Column to hold the content, relying on the parent container for padding/Scaffold
         Column(
             modifier = Modifier
@@ -99,9 +113,9 @@ fun AddRelationScreen(
             // 3. Gender Dropdown
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
-                    value = formState.relation,
+                    value = if(formState.relation.isEmpty()) formState.relation else member.fullName+" "+formState.relation.relationTextInHindi(),
                     onValueChange = { /* Read-only value */ },
-                    label = { Text("Relation") },
+                    label = { Text("Relation".inHindi()) },
                     readOnly = true,
                     trailingIcon = {
                         Icon(
@@ -118,14 +132,13 @@ fun AddRelationScreen(
                 ) {
                     getAvailableRelationsForGender(member.gender).forEach { relation ->
                         DropdownMenuItem(
-                            text = { Text(relation) },
+                            text = { Text(relation.relationTextInHindi()) },
                             onClick = {
                                 if (relation == formState.relation) return@DropdownMenuItem
                                 formState = formState.copy(relation = relation)
-                                formState = formState.copy(error = detailViewModel.checkRelationValidity(relation = relation))
+                                detailViewModel.checkRelationValidity(relation = relation)
 
-                                mSelectedPerson = Pair(-1, "")
-
+                                selectedMember = null
                                 formState = formState.copy(relatedToFullName = "")
                                 formState = formState.copy(relatedToMemberId = -1)
                                 expanded = false
@@ -139,10 +152,8 @@ fun AddRelationScreen(
             if (formState.relation.isNotEmpty()) {
 
                 OutlinedTextField(
-                    value = mSelectedPerson?.second ?: "Select Member",
-                    onValueChange = {
-                        formState = formState.copy(error = "")
-                    },
+                    value = selectedMember?.fullName ?: "Select Member".inHindi(),
+                    onValueChange = { /* Read-only value */ },
                     label = { Text("Member") },
                     readOnly = true,
                     trailingIcon = {
@@ -150,17 +161,18 @@ fun AddRelationScreen(
                             Icons.Default.Search,
                             contentDescription = "Select Member",
                             Modifier.clickable {
-                                navController.navigate(Home(formState.relation))
+                                showPicker = true
+//                                navController.navigate(Home(formState.relation))
                             }
                         )
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            if (formState.error.isNotEmpty()) {
+            if (error.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = formState.error,
+                    text = error,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Normal,
                         color = MaterialTheme.colorScheme.onErrorContainer
@@ -186,24 +198,19 @@ fun AddRelationScreen(
                 }
             }
             Spacer(Modifier.height(32.dp))
-
+            Log.d("AddRelationScreen"," error: $error")
             // Save Relation
-            if (formState.relatedToMemberId != -1 && formState.relation.isNotEmpty()) {
+            if (formState.relatedToMemberId != -1 && formState.relation.isNotEmpty() && error.isEmpty()) {
                 Button(
                     onClick = {
-                        val error = detailViewModel.checkRelationValidity(
-                            relation,
-                            mSelectedPerson
+                        detailViewModel.checkRelationValidity(
+                            formState.relation,
+                            selectedMember
                         )
-                        if (error.isNotEmpty()) {
-                            formState = formState.copy(error = error)
-                            return@Button
-                        }
 
                         formState = formState.copy(
-                            relation = relation,
-                            relatedToFullName = mSelectedPerson?.second ?: "",
-                            relatedToMemberId = mSelectedPerson?.first ?: -1,
+                            relatedToFullName = selectedMember?.fullName ?: "",
+                            relatedToMemberId = selectedMember?.memberId ?: -1,
                             relatesToFullName = member.fullName,
                             relatesToMemberId = detailViewModel.memberId
                         )

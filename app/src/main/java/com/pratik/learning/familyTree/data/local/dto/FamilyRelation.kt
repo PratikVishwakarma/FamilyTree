@@ -36,6 +36,10 @@ data class FamilyRelation(
     // Object of the relation (e.g., the parent in a 'Father' relation). This is the 'related member'.
     val relatedMemberId: Int,
 
-    // Type of relation (e.g., "Father", "Mother", "Husband", "Sibling")
-    val relationType: String
+    // Type of relation (e.g., "Father", "Mother", "Husband/Wife")
+    val relationType: String,
+
+    val updatedAt: String = System.currentTimeMillis().toString(),
+    val updatedBy: String = "",
+    var isNewEntry: Boolean = false
 )

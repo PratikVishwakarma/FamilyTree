@@ -6,6 +6,12 @@ import kotlinx.serialization.Serializable
 sealed interface AppRoute
 
 @Serializable
+data object MemberListGraph : AppRoute
+
+@Serializable
+data object SplashRoute : AppRoute
+
+@Serializable
 data class Home(val relation: String = "") : AppRoute
 
 @Serializable
@@ -15,7 +21,7 @@ data object AddMember : AppRoute
 data object MemberDetailsGraph : AppRoute
 
 @Serializable
-data class DetailsRoute(val memberId: Int) : AppRoute
+data class MemberDetailsRoute(val memberId: Int) : AppRoute
 
 @Serializable
 data class EditMemberRoute(val memberId: Int) : AppRoute
@@ -26,7 +32,5 @@ data class AncestryRoute(val memberId: Int) : AppRoute
 @Serializable
 data class AddRelationRoute(val memberId: Int) : AppRoute
 
-@Serializable
-data object ProductRoute : AppRoute
 
 
