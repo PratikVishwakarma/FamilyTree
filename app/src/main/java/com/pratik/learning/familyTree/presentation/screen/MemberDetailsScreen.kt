@@ -1,15 +1,16 @@
 package com.pratik.learning.familyTree.presentation.screen
 
-import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,11 +24,15 @@ import com.pratik.learning.familyTree.navigation.AddRelationRoute
 import com.pratik.learning.familyTree.navigation.AncestryRoute
 import com.pratik.learning.familyTree.navigation.EditMemberRoute
 import com.pratik.learning.familyTree.navigation.MemberDetailsRoute
+import com.pratik.learning.familyTree.presentation.component.ConfirmationPopup
 import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.MemberInfoSection
 import com.pratik.learning.familyTree.presentation.component.RelationGroup
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
+import com.pratik.learning.familyTree.presentation.viewmodel.UIState
+import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.isAdmin
+import com.pratik.learning.familyTree.utils.logger
 
 @Composable
 fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsViewModel) {
@@ -38,23 +43,48 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
         }
     }
     LaunchedEffect(Unit) {
-        Log.d("DetailsScreen", "LaunchedEffect")
+        logger("LaunchedEffect")
         viewModel.fetchDetails()
     }
+    val uiState = viewModel.uiState.collectAsState().value
     val member = viewModel.member.collectAsState().value
     val relations = viewModel.relations.collectAsState().value
     val dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
     Container(
-        title = "Member Details",
+        title = "Member Details".inHindi(),
         rightButton = {
             if (isAdmin)
                 Text(
-                    "Edit",
+                    "Edit".inHindi(),
                     modifier = Modifier.clickable { navController.navigate(EditMemberRoute(viewModel.memberId)) },
                     style = MaterialTheme.typography.titleMedium
                 )
         }
     ) {
+        when(uiState) {
+            is UIState.ConfirmationUIState -> {
+                ConfirmationPopup(
+                    title = uiState.title.inHindi(),
+                    message = uiState.message.inHindi(),
+                    onDismiss = { viewModel.dismissConfirmationPopup() },
+                    onConfirm = {
+                        when (uiState.title) {
+                            "Delete Member" -> {
+                                logger("MemberDetailsScreen", "onConfirm: Delete Member")
+                                viewModel.deleteMember(navController)
+                            }
+                            "Delete all relations" -> {
+                                logger("MemberDetailsScreen", "onConfirm: Delete all relations")
+                                viewModel.deleteAllRelations()
+                            }
+                        }
+                    }
+                )
+            }
+            else -> {
+                // nothing required
+            }
+        }
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -64,7 +94,7 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
             // Member Info Section
             item {
                 MemberInfoSection(member)
-                Divider(
+                HorizontalDivider(
                     color = dividerColor,
                     thickness = 1.dp,
                     modifier = Modifier.padding(vertical = 12.dp)
@@ -85,7 +115,6 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
                 RelationGroup("Grandparents ", relations.grandParentsFather, onMemberClick)
                 RelationGroup("Grandparents ", relations.grandParentsMother, onMemberClick)
             }
-            // Add Relation
             item {
                 Spacer(Modifier.height(16.dp))
                 Button(
@@ -96,31 +125,45 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
-                    Text("See Ancestry")
+                    Text("See Ancestry".inHindi())
                 }
+                // Admin options
                 Spacer(Modifier.height(16.dp))
                 if (isAdmin) {
                     Spacer(Modifier.height(32.dp))
-                    Button(
-                        onClick = {
-                            navController.navigate(route = AddRelationRoute(viewModel.memberId))
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    ) {
-                        Text("Add Relation")
+                    Row {
+                        Button(
+                            onClick = {
+                                navController.navigate(route = AddRelationRoute(viewModel.memberId))
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Text("Add Relation".inHindi())
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Button(
+                            onClick = {
+                                viewModel.showDeleteRelationShipClearPopup()
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Text("Delete all relations".inHindi())
+                        }
                     }
                     Spacer(Modifier.height(16.dp))
                     Button(
                         onClick = {
-                            viewModel.deleteMember(navController)
+                            viewModel.showDeleteMemberPopup()
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
                     ) {
-                        Text("❌ Delete Member")
+                        Text("❌ "+"Delete Member".inHindi())
                     }
                     Spacer(Modifier.height(16.dp))
                 }

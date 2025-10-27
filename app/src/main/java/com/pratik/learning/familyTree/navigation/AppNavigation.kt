@@ -38,21 +38,20 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
         composable<Home> { backStackEntry ->
             val membersViewModel = hiltViewModel<MembersViewModel>()
-            val relation = backStackEntry.toRoute<Home>().relation
-            membersViewModel.relationType = relation
             MemberSearchScreen(
                 onMemberSelected = { member ->
-                    if (relation.isEmpty())
-                        navController.navigate(route = MemberDetailsRoute(member.first))
-                    else {
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("selectedMemberId", member)
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("relation", relation)
-                        navController.popBackStack()
-                    }
+                    navController.navigate(route = MemberDetailsRoute(member.first))
+//                    if (relation.isEmpty())
+//                        navController.navigate(route = MemberDetailsRoute(member.first))
+//                    else {
+//                        navController.previousBackStackEntry
+//                            ?.savedStateHandle
+//                            ?.set("selectedMemberId", member)
+//                        navController.previousBackStackEntry
+//                            ?.savedStateHandle
+//                            ?.set("relation", relation)
+//                        navController.popBackStack()
+//                    }
                 },
                 navController,
                 viewModel = membersViewModel
@@ -64,7 +63,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 val membersViewModel =
                     backStackEntry.sharedViewModel<MemberDetailsViewModel>(navController)
                 membersViewModel.memberId = memberId.memberId
-                MemberDetailsScreen(navController, membersViewModel)
+                MemberDetailsScreen(navController,membersViewModel)
             }
 
             composable<AncestryRoute> { backStackEntry ->
@@ -88,10 +87,11 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 var selectedPerson by rememberSaveable { mutableStateOf<Pair<Int, String>?>(null) }
                 var relation by rememberSaveable { mutableStateOf("") }
 
-                val membersViewModel =
+                val membersViewModel = hiltViewModel<MembersViewModel>()
+                val detailsViewModel =
                     backStackEntry.sharedViewModel<MemberDetailsViewModel>(navController)
-                membersViewModel.memberId = memberId.memberId
-                AddRelationScreen(membersViewModel, navController, selectedPerson, relation)
+                detailsViewModel.memberId = memberId.memberId
+                AddRelationScreen(membersViewModel, detailsViewModel, navController)
 
                 // Listen for result from SearchPersonScreen
                 val savedStateHandle = navController.currentBackStackEntry
@@ -107,9 +107,6 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                         relation = relationType
                     }
             }
-
-
-
 
             composable<AddMember> {
                 val membersViewModel = hiltViewModel<MembersViewModel>()

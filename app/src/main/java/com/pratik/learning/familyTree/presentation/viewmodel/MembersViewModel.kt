@@ -1,7 +1,6 @@
 package com.pratik.learning.familyTree.presentation.viewmodel
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
@@ -22,10 +21,7 @@ import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_SISTER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_SON
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_WIFE
-import com.pratik.learning.familyTree.utils.SyncPrefs.getIsDataUpdateRequired
 import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
-import com.pratik.learning.familyTree.utils.SyncPrefs.shouldSync
-import com.pratik.learning.familyTree.utils.isAdmin
 import com.pratik.learning.familyTree.utils.logger
 import com.pratik.learning.familyTree.utils.validateMemberData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,11 +29,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
@@ -53,8 +47,7 @@ class MembersViewModel @Inject constructor(
 
     var relationType = ""
 
-    private val _isDataLoaded = MutableStateFlow(false)
-    var isDataLoaded: StateFlow<Boolean> = _isDataLoaded
+    var relatedMembers = emptyList<Int>()
 
     private val _query = MutableStateFlow("")
     var query: StateFlow<String> = _query
@@ -80,7 +73,9 @@ class MembersViewModel @Inject constructor(
             .flatMapLatest { (query, isUnmarried) ->
                 familyTreeRepository.getPagedMembersForSearchByName(query, isUnmarried)
                     .map { pagingData ->
-                        pagingData.filter { member ->
+                        pagingData
+                            // filter the relation type by gender
+                            .filter { member ->
                             when (relationType) {
                                 RELATION_TYPE_MOTHER,
                                 RELATION_TYPE_DAUGHTER,
@@ -95,6 +90,10 @@ class MembersViewModel @Inject constructor(
                                 else -> true
                             }
                         }
+                            // filter out already related members like spouse, parents, siblings, grandparents etc.
+                            .filter { member ->
+                                relatedMembers.isEmpty() || member.memberId !in relatedMembers
+                            }
                     }
             }.cachedIn(viewModelScope)
 
@@ -106,20 +105,8 @@ class MembersViewModel @Inject constructor(
         navController.navigate(route = AddMember)
     }
 
-    fun uploadDataOnServer() {
-        viewModelScope.launch(Dispatchers.IO) {
-            familyTreeRepository.syncDataToFirebase()
-        }
-    }
-
-    private fun downloadDataFromServer() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _isDataLoaded.value = familyTreeRepository.downloadDataFromServer()
-        }
-    }
-
     fun addMember(member: MemberFormState, navController: NavController) {
-        Log.d("MembersViewModel", "addMember: $member")
+        logger( "addMember:: $member")
 
 
         viewModelScope.launch {
@@ -132,7 +119,8 @@ class MembersViewModel @Inject constructor(
                 dod = member.dod,
                 city = member.city,
                 state = member.state,
-                mobile = member.mobile
+                mobile = member.mobile,
+                isNewEntry = true
             )
             val validateMemberData = validateMemberData(member)
             if (validateMemberData.isNotEmpty()) {

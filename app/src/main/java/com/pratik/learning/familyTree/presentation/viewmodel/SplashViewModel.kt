@@ -1,7 +1,6 @@
 package com.pratik.learning.familyTree.presentation.viewmodel
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
@@ -39,22 +38,23 @@ class SplashViewModel @Inject constructor(
 
     private suspend fun checkInternetAndSync() {
         val isRequired = familyTreeRepository.isNoDataAndNoInternet()
-        logger("checkInternetAndSync", "isRequired = $isRequired")
+        logger("checkInternetAndSync:: isRequired = $isRequired")
         if (isRequired) {
             _isInternetRequired.value = true
         } else {
             _isInternetRequired.value = false
             if (shouldSync(context) && familyTreeRepository.verifyInternetAccess()) {
-                Log.d("MembersViewModel", "Downloading data from server is required")
+                logger("checkInternetAndSync:: Downloading data from server is required")
                 downloadDataFromServer()
             } else {
-                delay(3000)
+                delay(1500)
                 _isDataLoaded.value = true
             }
         }
     }
 
     fun retryDataSync() {
+        logger("retryDataSync called")
         _isInternetRequired.value = false
         viewModelScope.launch {
             checkInternetAndSync()
@@ -63,11 +63,10 @@ class SplashViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            Log.d("MembersViewModel", "init called")
+            logger("init called")
             if (isAdmin && getIsDataUpdateRequired(context) && familyTreeRepository.verifyInternetAccess()) {
-                Log.d("MembersViewModel", "Uploading data to server is required")
+                logger("Uploading data to server is required")
                 uploadDataOnServer()
-                setIsDataUpdateRequired(context, false)
             }
             checkInternetAndSync()
         }
@@ -75,7 +74,7 @@ class SplashViewModel @Inject constructor(
 
     private fun uploadDataOnServer() {
         viewModelScope.launch(Dispatchers.IO) {
-            familyTreeRepository.syncDataToFirebase()
+            familyTreeRepository.syncDataToFirebase(isAlsoDownload = true)
         }
     }
 

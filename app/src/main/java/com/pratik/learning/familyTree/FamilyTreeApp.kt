@@ -5,13 +5,17 @@ import android.util.Log
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.pratik.learning.familyTree.utils.SyncOnExitWorker
+import com.pratik.learning.familyTree.utils.SyncPrefs.getIsDataUpdateRequired
 import com.pratik.learning.familyTree.utils.isAdmin
+import com.pratik.learning.familyTree.utils.logger
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class FamilyTreeApp : Application(), LifecycleObserver {
@@ -22,9 +26,15 @@ class FamilyTreeApp : Application(), LifecycleObserver {
 
     @OnLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_STOP)
     fun onAppBackgrounded() {
-        Log.d("FamilyTreeApp", "App in background calling enqueueSyncWork if Admin: $isAdmin")
-        if (isAdmin)
-            enqueueSyncWork()
+        logger("App in background calling enqueueSyncWork if Admin: $isAdmin")
+        ProcessLifecycleOwner.get().lifecycleScope.launch {
+            if (isAdmin && getIsDataUpdateRequired(this@FamilyTreeApp)) {
+                logger("App in background calling upload is required")
+                enqueueSyncWork()
+            } else {
+                logger("App in background not called but upload not required")
+            }
+        }
     }
 
     private fun enqueueSyncWork() {

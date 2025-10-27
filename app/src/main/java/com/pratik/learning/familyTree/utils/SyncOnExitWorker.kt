@@ -12,8 +12,10 @@ class SyncOnExitWorker(val context: Context, params: WorkerParameters): Coroutin
     lateinit var repository : FamilyTreeRepository
     override suspend fun doWork(): Result {
         return try {
-            if (!getIsDataUpdateRequired(context))
+            if (!getIsDataUpdateRequired(context)) {
+                logger("SyncWorker", "No data update required")
                 return Result.success()
+            }
 
             val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val activeNetwork = cm.activeNetworkInfo
@@ -22,6 +24,7 @@ class SyncOnExitWorker(val context: Context, params: WorkerParameters): Coroutin
             setIsDataUpdateRequired(context, false)
             Result.success()
         } catch (e: Exception) {
+            logger("SyncWorker", "onFailure with error: ${e.message}")
             Result.failure()
         }
     }

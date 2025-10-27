@@ -1,6 +1,5 @@
 package com.pratik.learning.familyTree.presentation.screen
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -42,6 +42,8 @@ import androidx.navigation.NavController
 import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
 import com.pratik.learning.familyTree.utils.genders
+import com.pratik.learning.familyTree.utils.inHindi
+import com.pratik.learning.familyTree.utils.logger
 import com.pratik.learning.familyTree.utils.showDatePicker
 import com.pratik.learning.familyTree.utils.states
 
@@ -54,7 +56,7 @@ fun EditMemberScreen(
 
     val error = viewModel.error.collectAsState().value
     LaunchedEffect(Unit) {
-        Log.d("EditMemberScreen", "LaunchedEffect")
+        logger("EditMemberScreen", "LaunchedEffect")
         viewModel.fetchDetails()
     }
 
@@ -66,7 +68,7 @@ fun EditMemberScreen(
 
     // Helper lambda to launch the date picker dialog and update state
     val openDatePicker: (Boolean) -> Unit = { isDob ->
-        showDatePicker(context) { newDate ->
+        showDatePicker(context, date = if (isDob) formState.dob else formState.dod, maxDate = if (isDob) "" else formState.dob) { newDate ->
             if (isDob) {
                 viewModel.onDOBChanged(newDate)
             } else {
@@ -81,9 +83,10 @@ fun EditMemberScreen(
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp) // Add default padding for inner content
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .fillMaxSize(),
+                .imePadding()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(Modifier.height(8.dp))
@@ -91,8 +94,10 @@ fun EditMemberScreen(
             // 1. Full Name
             OutlinedTextField(
                 value = formState.fullName,
+                maxLines = 1,
+                singleLine = true,
                 onValueChange = { viewModel.onFullNameChanged(it)},
-                label = { Text("Full Name") },
+                label = { Text("Full Name".inHindi()) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(16.dp))
@@ -100,8 +105,10 @@ fun EditMemberScreen(
             // Gotra
             OutlinedTextField(
                 value = formState.gotra,
+                maxLines = 1,
+                singleLine = true,
                 onValueChange = { viewModel.onGotraChanged(it)},
-                label = { Text("Full Name") },
+                label = { Text("Gotra".inHindi()) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(16.dp))
@@ -109,8 +116,10 @@ fun EditMemberScreen(
             // Gender Dropdown
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
-                    value = formState.gender,
+                    value = formState.gender.inHindi(),
                     onValueChange = { /* Read-only value */ },
+                    maxLines = 1,
+                    singleLine = true,
                     label = { Text("Gender") },
                     readOnly = true,
                     trailingIcon = {
@@ -128,7 +137,7 @@ fun EditMemberScreen(
                 ) {
                     genders.forEach { gender ->
                         DropdownMenuItem(
-                            text = { Text(gender) },
+                            text = { Text(gender.inHindi()) },
                             onClick = {
                                 viewModel.onGenderChanged(gender)
                                 genderExpanded = false
@@ -142,8 +151,10 @@ fun EditMemberScreen(
             // Date of Birth (Clickable to open Date Picker)
             OutlinedTextField(
                 value = formState.dob,
+                maxLines = 1,
+                singleLine = true,
                 onValueChange = { /* Read-only field */ },
-                label = { Text("Date of Birth") },
+                label = { Text("Date of Birth".inHindi()) },
                 readOnly = true,
                 trailingIcon = {
                     Icon(
@@ -178,8 +189,10 @@ fun EditMemberScreen(
             if (!formState.isLiving) {
                 OutlinedTextField(
                     value = formState.dod,
+                    maxLines = 1,
+                    singleLine = true,
                     onValueChange = { /* Read-only field */ },
-                    label = { Text("Date of Death") },
+                    label = { Text("Date of Death".inHindi()) },
                     readOnly = true,
                     trailingIcon = {
                         Icon(
@@ -197,6 +210,8 @@ fun EditMemberScreen(
             // 6. City
             OutlinedTextField(
                 value = formState.city,
+                maxLines = 1,
+                singleLine = true,
                 onValueChange = {
                     viewModel.onCityChanged(it)
                 },
@@ -210,6 +225,8 @@ fun EditMemberScreen(
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = formState.state,
+                    maxLines = 1,
+                    singleLine = true,
                     onValueChange = { /* Read-only value */ },
                     label = { Text("State") },
                     readOnly = true,
@@ -241,13 +258,14 @@ fun EditMemberScreen(
 
             OutlinedTextField(
                 value = formState.mobile,
+                maxLines = 1,
+                singleLine = true,
                 onValueChange = {
                     viewModel.onMobileChanged(it)
                 },
-                label = { Text("Mobile Number") },
+                label = { Text("Mobile Number".inHindi()) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = 1
             )
             if (error.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))

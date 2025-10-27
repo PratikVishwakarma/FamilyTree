@@ -77,7 +77,7 @@ val states = listOf(
 
 
 fun getAvailableRelationsForGender(gender: String): List<String> {
-    Log.d("Utils", "getAvailableRelationsForGender for gender: $gender")
+    logger("Utils", "getAvailableRelationsForGender for gender: $gender")
     val maleRelations = listOf(
         RELATION_TYPE_HUSBAND,
     )
@@ -114,27 +114,79 @@ fun getIcon(relation: String): String {
 }
 
 fun String.inHindi(): String {
+    return when (this.lowercase()) {
+        RELATION_TYPE_FATHER.lowercase() -> "पिता"
+        RELATION_TYPE_MOTHER.lowercase() -> "माता"
+        RELATION_TYPE_FATHER_IN_LAW.lowercase() -> "ससुर"
+        RELATION_TYPE_MOTHER_IN_LAW.lowercase() -> "सास"
+        RELATION_TYPE_BROTHER.lowercase() -> "भाई"
+        RELATION_TYPE_SISTER.lowercase() -> "बहन"
+        RELATION_TYPE_HUSBAND.lowercase() -> "पति"
+        RELATION_TYPE_WIFE.lowercase() -> "पत्नी"
+        RELATION_TYPE_SON.lowercase() -> "पुत्र"
+        RELATION_TYPE_DAUGHTER.lowercase() -> "पुत्री"
+        RELATION_TYPE_GRANDFATHER_F.lowercase() -> "दादा जी"
+        RELATION_TYPE_GRANDMOTHER_F.lowercase()-> "दादी जी"
+        RELATION_TYPE_GRANDFATHER_M.lowercase() -> "नाना जी"
+        RELATION_TYPE_GRANDMOTHER_M.lowercase() -> "नानी जी"
+        RELATION_TYPE_GRANDCHILD.lowercase() -> "पोता"
+        RELATION_TYPE_GREAT_GRANDCHILD.lowercase() -> "परपोता"
+        RELATION_TYPE_GREAT_GREAT_GRANDCHILD.lowercase() -> "पर परपोता"
+        RELATION_TYPE_GREAT____GRANDCHILD.lowercase() -> "पर...परपोता"
+        GENDER_TYPE_MALE.lowercase() -> "पुरुष"
+        GENDER_TYPE_FEMALE.lowercase() -> "महिला"
+        "full name" -> "नाम"
+        "deceased" -> "स्वर्गवासी"
+        "gotra" -> "गोत्र"
+        "dob", "date of birth" -> "जन्मदिन"
+        "dod", "date of death" -> "मृत्यु दिवस"
+        "Mobile Number" -> "मोबाइल नंबर"
+        "search" -> "खोजेंं"
+        "unmarried" -> "अविवाहित"
+        "add member" -> "सदस्य जोड़ें"
+        "add relation" -> "संबंध जोड़ें"
+        "see ancestry" -> "वंशावली देखें"
+        "delete member" -> "सदस्य हटाएं"
+        "member details" -> "सदस्य विवरण"
+        "select member" -> "सदस्य का चयन करें"
+        "relation" -> "संबंध"
+        "please select a relation" -> "कृपया एक संबंध चुनें"
+        "please select a related person" -> "कृपया संबंधित व्यक्ति का चयन करें"
+        "person cannot be related to themselves" -> "व्यक्ति स्वयं से संबंधित नहीं हो सकता"
+        "edit" -> "परिवर्तन"
+        "are you sure you want to delete this member?" -> "क्या आप वाकई इस सदस्य को हटाना चाहते हैं?"
+        "yes" -> "हाँ"
+        "no", "cancel" -> "नहीं"
+        "delete all relations" -> "सभी संबंध हटाएँ"
+        "are you sure you want to delete all the relations for member?" -> "क्या आप वाकई सदस्य के सभी संबंध हटाना चाहते हैं?                "
+        else -> this
+    }
+}
+
+
+fun String.relationTextInHindi(): String {
     return when (this) {
-        RELATION_TYPE_FATHER -> "पिता"
-        RELATION_TYPE_MOTHER -> "माता"
+        RELATION_TYPE_FATHER -> "के पिता"
+        RELATION_TYPE_MOTHER -> "की माता"
         RELATION_TYPE_FATHER_IN_LAW -> "ससुर"
         RELATION_TYPE_MOTHER_IN_LAW -> "सास"
         RELATION_TYPE_BROTHER -> "भाई"
         RELATION_TYPE_SISTER -> "बहन"
-        RELATION_TYPE_HUSBAND -> "पति"
-        RELATION_TYPE_WIFE -> "पत्नी"
-        RELATION_TYPE_SON -> "पुत्र"
-        RELATION_TYPE_DAUGHTER -> "पुत्री"
+        RELATION_TYPE_HUSBAND -> "के पति"
+        RELATION_TYPE_WIFE -> "की पत्नी"
+        RELATION_TYPE_SON -> "का पुत्र"
+        RELATION_TYPE_DAUGHTER -> "की पुत्री"
         RELATION_TYPE_GRANDFATHER_F -> "दादा जी"
         RELATION_TYPE_GRANDMOTHER_F -> "दादी जी"
         RELATION_TYPE_GRANDFATHER_M -> "नाना जी"
         RELATION_TYPE_GRANDMOTHER_M -> "नानी जी"
         GENDER_TYPE_MALE -> "पुरुष"
         GENDER_TYPE_FEMALE -> "महिला"
+        "Full Name" -> "नाम"
         "Deceased" -> "स्वर्गवासी"
         "Gotra" -> "गोत्र"
-        "DOB" -> "जन्मदिन"
-        "DOD" -> "मृत्यु दिवस"
+        "DOB", "Date of Birth" -> "जन्मदिन"
+        "DOD", "Date of Death" -> "मृत्यु दिवस"
         else -> this
     }
 }
@@ -151,8 +203,19 @@ fun String.getFirstName(): String {
     return if (surname.isEmpty()) this else this.substringBeforeLast(' ', this)
 }
 
+fun String.getCombinedName(spouseName: String = ""): String {
+    val memberSN = this.getSurname()
+    val spouseSN = spouseName.getSurname()
+    if (spouseName.isEmpty()) return this
+    return  if (memberSN == spouseSN && memberSN.isNotEmpty()) {
+       this.getFirstName() + " ❤️ " + spouseName.getFirstName() + " " + memberSN
+    } else {
+        "$this ❤️ $spouseName $memberSN"
+    }
+}
+
 fun formatIsoDate(dateString: String): String {
-    Log.d("Utils", "formatIsoDate for date: $dateString")
+    logger("Utils", "formatIsoDate for date: $dateString")
     return try {
         val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH)
         val outputFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH)
@@ -164,7 +227,7 @@ fun formatIsoDate(dateString: String): String {
 }
 
 fun calculateAgeFromDob(dobString: String): Int {
-    Log.d("Utils", "calculateAgeFromDob for dob: $dobString")
+    logger("Utils", "calculateAgeFromDob for dob: $dobString")
     return try {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH)
         val dob = LocalDate.parse(dobString, formatter)
@@ -209,16 +272,42 @@ data class RelationFormState(
 fun showDatePicker(
     context: Context,
     date: String = "",
+    maxDate: String = "",
     onDateSelected: (String) -> Unit
 ) {
     val calendar = Calendar.getInstance()
     val todayCalendar = Calendar.getInstance()
-
-    val currentYear = todayCalendar.get(Calendar.YEAR)
-    val currentMonth = todayCalendar.get(Calendar.MONTH)
-    val currentDay = todayCalendar.get(Calendar.DAY_OF_MONTH)
-
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+    // Try parsing the provided date
+    if (date.isNotBlank()) {
+        try {
+            val parsedDate = dateFormat.parse(date)
+            parsedDate?.let {
+                calendar.time = it
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    } else {
+        calendar.time = todayCalendar.time
+    }
+
+    if (maxDate.isNotBlank()) {
+        try {
+            val parsedDate = dateFormat.parse(maxDate)
+            parsedDate?.let {
+                todayCalendar.time = it
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+
+    val currentYear = calendar.get(Calendar.YEAR)
+    val currentMonth = calendar.get(Calendar.MONTH)
+    val currentDay = calendar.get(Calendar.DAY_OF_MONTH)
 
     val datePickerDialog = DatePickerDialog(
         context,
@@ -240,7 +329,7 @@ fun showDatePicker(
 
 
 fun validateMemberData(member: MemberFormState): String {
-    Log.d("MembersViewModel", "validateData: $member")
+    logger("MembersViewModel", "validateData: $member")
     val error = ""
     if (member.fullName.isBlank()) {
         return "Please enter a name"
@@ -285,4 +374,3 @@ fun validateMemberData(member: MemberFormState): String {
     return error
 }
 
-private const val LAST_SYNC_TIME = "last_sync_time"

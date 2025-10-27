@@ -3,11 +3,8 @@ package com.pratik.learning.familyTree.di
 import android.content.Context
 import com.google.firebase.storage.FirebaseStorage
 import com.pratik.learning.familyTree.data.local.dao.FamilyTreeDao
-import com.pratik.learning.familyTree.data.network.ApiService
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepositoryImpl
-import com.pratik.learning.familyTree.data.repository.ProductRepository
-import com.pratik.learning.familyTree.data.repository.ProductRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,13 +26,6 @@ object RepositoryModule {
     @Singleton
     fun provideFamilyRepository(dao: FamilyTreeDao, storage: FirebaseStorage, @ApplicationContext context: Context): FamilyTreeRepository {
         return FamilyTreeRepositoryImpl(dao, storage, context)
-    }
-
-
-    @Provides
-    @Singleton
-    fun provideProductRepository(apiService: ApiService): ProductRepository {
-        return ProductRepositoryImpl(apiService)
     }
 
 }

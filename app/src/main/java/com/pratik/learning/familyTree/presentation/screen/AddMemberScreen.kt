@@ -21,6 +21,7 @@ import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
 import com.pratik.learning.familyTree.utils.MemberFormState
 import com.pratik.learning.familyTree.utils.genders
+import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.showDatePicker
 import com.pratik.learning.familyTree.utils.states
 
@@ -37,7 +38,7 @@ fun AddMemberScreen(
     val error = viewModel.error.collectAsState().value
     // Helper lambda to launch the date picker dialog and update state
     val openDatePicker: (Boolean) -> Unit = { isDob ->
-        showDatePicker(context, date = if(isDob) formState.dob else formState.dod) { newDate ->
+        showDatePicker(context, date = if (isDob) formState.dob else formState.dod, maxDate = if (isDob) "" else formState.dob) { newDate ->
             formState = if (isDob) {
                 formState.copy(dob = newDate)
             } else {
@@ -52,9 +53,10 @@ fun AddMemberScreen(
         // Use a Column to hold the content, relying on the parent container for padding/Scaffold
         Column(
             modifier = Modifier
-                .padding(16.dp) // Add default padding for inner content
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .fillMaxSize(),
+                .imePadding()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(Modifier.height(8.dp))
@@ -63,8 +65,9 @@ fun AddMemberScreen(
             OutlinedTextField(
                 value = formState.fullName,
                 maxLines = 1,
+                singleLine = true,
                 onValueChange = { formState = formState.copy(fullName = it) },
-                label = { Text("Full Name") },
+                label = { Text("Full Name".inHindi()) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(16.dp))
@@ -72,8 +75,9 @@ fun AddMemberScreen(
             OutlinedTextField(
                 value = formState.gotra,
                 maxLines = 1,
+                singleLine = true,
                 onValueChange = { formState = formState.copy(gotra = it) },
-                label = { Text("Gotra") },
+                label = { Text("Gotra".inHindi()) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(16.dp))
@@ -81,9 +85,10 @@ fun AddMemberScreen(
             // 3. Gender Dropdown
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
-                    value = formState.gender,
+                    value = formState.gender.inHindi(),
                     onValueChange = { /* Read-only value */ },
                     maxLines = 1,
+                    singleLine = true,
                     label = { Text("Gender") },
                     readOnly = true,
                     trailingIcon = {
@@ -101,7 +106,7 @@ fun AddMemberScreen(
                 ) {
                     genders.forEach { gender ->
                         DropdownMenuItem(
-                            text = { Text(gender) },
+                            text = { Text(gender.inHindi()) },
                             onClick = {
                                 formState = formState.copy(gender = gender)
                                 genderExpanded = false
@@ -115,8 +120,9 @@ fun AddMemberScreen(
             OutlinedTextField(
                 value = formState.dob,
                 maxLines = 1,
+                singleLine = true,
                 onValueChange = { /* Read-only field */ },
-                label = { Text("Date of Birth") },
+                label = { Text("Date of Birth".inHindi()) },
                 readOnly = true,
                 trailingIcon = {
                     Icon(
@@ -154,7 +160,7 @@ fun AddMemberScreen(
                     value = formState.dod,
                     maxLines = 1,
                     onValueChange = { /* Read-only field */ },
-                    label = { Text("Date of Death") },
+                    label = { Text("Date of Death".inHindi()) },
                     readOnly = true,
                     trailingIcon = {
                         Icon(
@@ -173,6 +179,7 @@ fun AddMemberScreen(
             OutlinedTextField(
                 value = formState.city,
                 maxLines = 1,
+                singleLine = true,
                 onValueChange = { formState = formState.copy(city = it) },
                 label = { Text("City / Place") },
                 modifier = Modifier.fillMaxWidth()
@@ -187,6 +194,7 @@ fun AddMemberScreen(
                     label = { Text("State") },
                     readOnly = true,
                     maxLines = 1,
+                    singleLine = true,
                     trailingIcon = {
                         Icon(
                             Icons.Default.ArrowDropDown,
@@ -217,10 +225,11 @@ fun AddMemberScreen(
             OutlinedTextField(
                 value = formState.mobile,
                 onValueChange = { formState = formState.copy(mobile = it.filter { text -> text.isDigit() }) },
-                label = { Text("Mobile Number") },
+                label = { Text("Mobile Number".inHindi()) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = 1
+                maxLines = 1,
+                singleLine = true,
             )
             if (error.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
@@ -241,7 +250,7 @@ fun AddMemberScreen(
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp)
             ) {
-                Text("Save Member")
+                Text("Add Member".inHindi())
             }
             Spacer(Modifier.height(16.dp))
         }

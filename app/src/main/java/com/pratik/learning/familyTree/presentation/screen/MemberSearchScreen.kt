@@ -29,6 +29,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.TopicTile
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
+import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.isAdmin
 
 @SuppressLint("StateFlowValueCalledInComposition")
@@ -48,7 +49,7 @@ fun MemberSearchScreen(
         rightButton = {
             if (viewModel.relationType.isEmpty() && isAdmin)
                 Text(
-                    "Add Member",
+                    "Add Member".inHindi(),
                     modifier = Modifier.clickable { viewModel.navigateToAddMember(navController) },
                     style = MaterialTheme.typography.titleMedium
                 )
@@ -58,7 +59,7 @@ fun MemberSearchScreen(
             OutlinedTextField(
                 value = query, // type: String ✅
                 onValueChange = { viewModel.onQueryChanged(it) }, // type: (String) -> Unit ✅
-                label = { Text("Search") },
+                label = { Text("Search".inHindi()) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -69,7 +70,7 @@ fun MemberSearchScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Unmarried", style = MaterialTheme.typography.bodyLarge)
+                    Text("Unmarried".inHindi(), style = MaterialTheme.typography.bodyLarge)
                     Spacer(Modifier.width(16.dp))
                     Switch(
                         checked = isUnmarried,
@@ -85,12 +86,12 @@ fun MemberSearchScreen(
                 items(members.itemCount) { index ->
                     val member = members[index]
                     member?.let {
-                        val fatherName = member.fatherFullName ?: ""
+                        val relatedName = if(!member.husbandFullName.isNullOrEmpty()) "पति - श्री ${member.husbandFullName}" else "पिता - श्री ${member.fatherFullName}"
+//                        val relatedName =  "पिता - श्री ${member.fatherFullName}"
                         val description =
-                            if (fatherName.isNotEmpty()) "पिता - श्री $fatherName - ${member.city}" else member.city
+                            if (relatedName.isNotEmpty()) "$relatedName - ${member.city}" else member.city
                         TopicTile(
                             title = member.fullName,
-                            memberId = member.memberId,
                             description = description,
                             onClick = {
                                 onMemberSelected(

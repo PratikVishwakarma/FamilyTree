@@ -7,7 +7,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1048584942441:android:3625bd96e668b3378d03f8",
+        "mobilesdk_app_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         "android_client_info": {
           "package_name": "com.pratik.learning.familyTree"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA52I_MOF2BYyexbXeC3eZDOUmqjNxk8DI"
+          "current_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         }
       ],
       "services": {
