@@ -1,6 +1,7 @@
 package com.pratik.learning.familyTree.data.local.dto
 
 
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -50,6 +51,13 @@ data class MemberWithFather(
     val husbandFullName: String?
 )
 
+data class ChildWithSpouseDto(
+    @Embedded val child: FamilyMember,
+    val spouseId: Int?,
+    val spouseFullName: String?
+)
+
+
 data class DualAncestorTree(
     val self: FamilyMember?,
     val spouse: FamilyMember?,
@@ -85,7 +93,7 @@ data class MemberRelations(
     val spouse: Pair<String, FamilyMember>? = null,
     val inLaws: List<Pair<String, FamilyMember>> = emptyList(),
     val siblings: List<Pair<String, FamilyMember>> = emptyList(),
-    val children: List<Pair<String, FamilyMember>> = emptyList(),
+    val children: List<Pair<String, ChildWithSpouseDto>> = emptyList(),
     val grandchildren: List<Pair<String, FamilyMember>> = emptyList(),
     val grandParentsFather: List<Pair<String, FamilyMember>> = emptyList(),
     val grandParentsMother: List<Pair<String, FamilyMember>> = emptyList(),

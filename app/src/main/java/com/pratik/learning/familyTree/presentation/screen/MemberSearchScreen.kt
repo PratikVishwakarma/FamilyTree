@@ -1,6 +1,7 @@
 package com.pratik.learning.familyTree.presentation.screen
 
 import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,16 +27,19 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.pratik.learning.familyTree.navigation.MemberDetailsRoute
+import com.pratik.learning.familyTree.presentation.UIState
 import com.pratik.learning.familyTree.presentation.component.Container
+import com.pratik.learning.familyTree.presentation.component.MemberInfoOverlay
 import com.pratik.learning.familyTree.presentation.component.TopicTile
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
 import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.isAdmin
+import com.pratik.learning.familyTree.utils.logger
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun MemberSearchScreen(
-    onMemberSelected: (Pair<Int, String>) -> Unit,
     navController: NavController,
     viewModel: MembersViewModel
 ) {
@@ -44,6 +48,14 @@ fun MemberSearchScreen(
     val query by viewModel.query.collectAsState()
     val isUnmarried = viewModel.isUnmarried.collectAsState().value
 
+    val uiState = viewModel.uiState.collectAsState().value
+
+    BackHandler {
+        if (query.isNotEmpty())
+            viewModel.onQueryChanged("")
+        else
+            navController.popBackStack()
+    }
     Container(
         title = "Members",
         rightButton = {
@@ -55,6 +67,16 @@ fun MemberSearchScreen(
                 )
         }
     ) {
+        when(uiState) {
+            is UIState.ExpandViewUIState -> {
+                logger("ExpandViewUIState", "Long press for member: ${uiState.member.fullName}")
+                MemberInfoOverlay(uiState.member) {
+                    viewModel.dismissExpandedMember()
+                }
+            } else -> {
+                // nothing required
+            }
+        }
         Column(Modifier.padding(16.dp)) {
             OutlinedTextField(
                 value = query, // type: String ✅
@@ -84,22 +106,20 @@ fun MemberSearchScreen(
             Spacer(Modifier.height(16.dp))
             LazyColumn {
                 items(members.itemCount) { index ->
-                    val member = members[index]
-                    member?.let {
-                        val relatedName = if(!member.husbandFullName.isNullOrEmpty()) "पति - श्री ${member.husbandFullName}" else "पिता - श्री ${member.fatherFullName}"
-//                        val relatedName =  "पिता - श्री ${member.fatherFullName}"
+                    val mem = members[index]
+                    mem?.let { member ->
+                        val relatedName = if(!member.husbandFullName.isNullOrEmpty()) "पति - श्री ${member.husbandFullName}" else if(!member.fatherFullName.isNullOrEmpty()) "पिता - श्री ${member.fatherFullName}" else ""
                         val description =
                             if (relatedName.isNotEmpty()) "$relatedName - ${member.city}" else member.city
                         TopicTile(
                             title = member.fullName,
                             description = description,
-                            onClick = {
-                                onMemberSelected(
-                                    Pair(
-                                        member.memberId,
-                                        member.fullName
-                                    )
-                                )
+                            onSinglePress = {
+                                navController.navigate(route = MemberDetailsRoute(member.memberId))
+                            },
+                            onLongPress = {
+                                viewModel.showExpandedMember(member)
+                                logger("onLong Click on member: ${member.fullName}")
                             }
                         )
                     }

@@ -1,6 +1,7 @@
 package com.pratik.learning.familyTree.data.repository
 
 import androidx.paging.PagingData
+import com.pratik.learning.familyTree.data.local.dto.ChildWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.DescendantNode
 import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
@@ -21,7 +22,7 @@ interface FamilyTreeRepository {
 
     suspend fun insertMember(member: FamilyMember): Long
 
-    suspend fun updateMember(member: FamilyMember)
+    suspend fun updateMember(member: FamilyMember, isGotraChanged: Boolean = false, spouseId: Int = -1)
 
     suspend fun deleteMember(id: Int)
 
@@ -43,6 +44,8 @@ interface FamilyTreeRepository {
     suspend fun getSpouse(memberId: Int): FamilyMember?
 
     suspend fun getChildren(memberId: Int): List<FamilyMember>
+
+    suspend fun getChildrenWithSpouse(memberId: Int): List<ChildWithSpouseDto>
 
     suspend fun getFullAncestorTree(memberId: Int): DualAncestorTree?
 

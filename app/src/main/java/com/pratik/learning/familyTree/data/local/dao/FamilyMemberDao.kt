@@ -10,6 +10,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import com.pratik.learning.familyTree.data.local.dto.ChildWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
@@ -160,6 +161,19 @@ interface FamilyTreeDao {
     @Update
     suspend fun updateMember(member: FamilyMember)
 
+    @Query("""
+    UPDATE members 
+    SET gotra = :gotra, 
+        updatedAt = :updatedAt 
+    WHERE memberId = :memberId
+""")
+    suspend fun updateGotra(
+        memberId: Int,
+        gotra: String,
+        updatedAt: Long = System.currentTimeMillis()
+    )
+
+
     @Query("SELECT * FROM members ORDER BY memberId DESC")
     fun getAllMembers(): Flow<List<FamilyMember>>
 
@@ -260,18 +274,44 @@ interface FamilyTreeDao {
         WHERE
             r.relatedMemberId = :memberId 
             AND r.relationType IN ('Father', 'Mother')
+        ORDER BY
+            m2.dob ASC
     """)
     suspend fun getChildren(memberId: Int): List<FamilyMember>?
 
 
     @Query("""
-    SELECT m2.*
-    FROM relations r
-    INNER JOIN members m2 ON r.relatesToMemberId = m2.memberId
-    WHERE r.relationType IN ('Father', 'Mother')
-      AND r.relatedMemberId = :memberId
+    SELECT 
+        c.*, 
+        s.fullName AS spouseFullName, 
+        s.memberId AS spouseId
+    FROM 
+        relations rParent
+    INNER JOIN 
+        members c ON rParent.relatesToMemberId = c.memberId
+    LEFT JOIN 
+        relations rSpouse ON 
+            (
+                (rSpouse.relatesToMemberId = c.memberId AND rSpouse.relationType IN ('Husband', 'Wife'))
+                OR
+                (rSpouse.relatedMemberId = c.memberId AND rSpouse.relationType IN ('Husband', 'Wife'))
+            )
+    LEFT JOIN 
+        members s ON 
+            (CASE 
+                WHEN rSpouse.relatesToMemberId = c.memberId THEN rSpouse.relatedMemberId 
+                ELSE rSpouse.relatesToMemberId 
+            END) = s.memberId
+    WHERE
+        rParent.relatedMemberId = :memberId
+        AND rParent.relationType IN ('Father', 'Mother')
+    GROUP BY 
+        c.memberId
+    ORDER BY 
+        c.dob ASC
 """)
-    suspend fun getChildren2(memberId: Int): List<FamilyMember>
+    suspend fun getChildrenWithSpouse(memberId: Int): List<ChildWithSpouseDto>
+
 //
 //@Query("""
 //     SELECT

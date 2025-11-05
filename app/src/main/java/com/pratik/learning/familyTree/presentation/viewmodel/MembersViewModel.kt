@@ -12,6 +12,7 @@ import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
 import com.pratik.learning.familyTree.navigation.AddMember
 import com.pratik.learning.familyTree.navigation.MemberDetailsRoute
+import com.pratik.learning.familyTree.presentation.UIState
 import com.pratik.learning.familyTree.utils.MemberFormState
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_BROTHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_DAUGHTER
@@ -62,6 +63,9 @@ class MembersViewModel @Inject constructor(
     private val _error = MutableStateFlow("")
     var error: StateFlow<String> = _error
 
+    private val _uiState = MutableStateFlow<UIState>(UIState.IdealUIState)
+    var uiState: StateFlow<UIState> = _uiState
+
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     val filterResult: Flow<PagingData<MemberWithFather>> =
         combine(
@@ -98,10 +102,6 @@ class MembersViewModel @Inject constructor(
             }.cachedIn(viewModelScope)
 
     fun navigateToAddMember(navController: NavController) {
-        viewModelScope.launch(Dispatchers.IO) {
-            familyTreeRepository.downloadDataFromServer()
-            return@launch
-        }
         navController.navigate(route = AddMember)
     }
 
@@ -111,13 +111,13 @@ class MembersViewModel @Inject constructor(
 
         viewModelScope.launch {
             val familyMember = FamilyMember(
-                fullName = member.fullName,
-                gotra = member.gotra,
+                fullName = member.fullName.trim(),
+                gotra = member.gotra.trim(),
                 dob = member.dob,
                 gender = member.gender,
                 isLiving = member.isLiving,
                 dod = member.dod,
-                city = member.city,
+                city = member.city.trim(),
                 state = member.state,
                 mobile = member.mobile,
                 isNewEntry = true
@@ -140,5 +140,19 @@ class MembersViewModel @Inject constructor(
     fun onUnmarriedCheck(checked: Boolean) {
         _isUnmarried.value = checked
     }
+
+    fun showExpandedMember(member: MemberWithFather) {
+        val expandedUI = UIState.ExpandViewUIState(member)
+        if (_uiState.value is UIState.IdealUIState)
+            _uiState.value = expandedUI
+    }
+
+    fun dismissExpandedMember() {
+        if (_uiState.value is UIState.IdealUIState)
+            return
+        _uiState.value = UIState.IdealUIState
+    }
+
+
 }
 

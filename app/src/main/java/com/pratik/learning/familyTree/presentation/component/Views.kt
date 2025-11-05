@@ -1,14 +1,18 @@
 package com.pratik.learning.familyTree.presentation.component
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -38,6 +43,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,10 +51,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -63,6 +71,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pratik.learning.familyTree.R
+import com.pratik.learning.familyTree.data.local.dto.ChildWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
@@ -70,8 +79,10 @@ import com.pratik.learning.familyTree.utils.MemberFormState
 import com.pratik.learning.familyTree.utils.calculateAgeFromDob
 import com.pratik.learning.familyTree.utils.formatIsoDate
 import com.pratik.learning.familyTree.utils.getIcon
+import com.pratik.learning.familyTree.utils.getSpouseRelation
 import com.pratik.learning.familyTree.utils.inHindi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -107,19 +118,44 @@ fun Container(
         }
     }
 }
-
-
 @Composable
 fun TopicTile(
     title: String,
     description: String,
-    onClick: () -> Unit
+    onSinglePress: () -> Unit,
+    onLongPress: () -> Unit
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scope =     rememberCoroutineScope()
+
+    // Smooth pop animation
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 1.1f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.4f,    // makes it bouncy
+            stiffness = 300f
+        ),
+        label = "popScale"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
-            .clickable { onClick() },
+            .scale(scale)
+            .combinedClickable(
+                onClick = onSinglePress,
+                onLongClick = {
+                    isPressed = true
+                    onLongPress()
+
+                    // launch coroutine safely from event handler
+                    scope.launch {
+                        delay(150)
+                        isPressed = false
+                    }
+                }
+            ),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -141,6 +177,7 @@ fun TopicTile(
         }
     }
 }
+
 
 
 @Composable
@@ -205,10 +242,96 @@ fun MemberInfoSection(member: MemberFormState) {
 
 
 @Composable
+fun MemberInfoOverlay(
+    member: MemberWithFather,
+    onDismiss: () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Trigger bounce when dialog first appears
+    LaunchedEffect(Unit) {
+        visible = true
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        // Dark background (no blur)
+        Box(
+            modifier = Modifier
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            // Bounce animation
+            AnimatedVisibility(visible = visible) {
+                val scale by animateFloatAsState(
+                    targetValue = if (visible) 1f else 0.8f,
+                    animationSpec = spring(
+                        dampingRatio = 0.5f,
+                        stiffness = 250f
+                    ),
+                    label = "overlayScale",
+                    finishedListener = {
+                        coroutineScope.launch {
+                            onDismiss()
+                        }
+                    }
+                )
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .wrapContentHeight()
+                        .scale(scale),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        MemberInfoSection(
+                            MemberFormState(
+                                fullName = member.fullName,
+                                gotra = member.gotra,
+                                dob = member.dob,
+                                gender = member.gender,
+                                isLiving = member.isLiving,
+                                dod = member.dod,
+                                city = member.city,
+                                state = member.state,
+                                mobile = member.mobile
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedButton(
+                            onClick = {
+                                visible = false
+                            },
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Close")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
 fun RelationGroup(
     title: String,
     members: List<Pair<String, FamilyMember>>,
-    onMemberClick: (FamilyMember) -> Unit
+    onMemberClick: (Int) -> Unit
 ) {
     println("RelationGroup: $title  members: $members")
     if (members.isEmpty()) return
@@ -226,7 +349,7 @@ fun RelationGroup(
         )
         Spacer(modifier = Modifier.height(4.dp))
         members.sortedBy { it.second.dob }.forEachIndexed { index, member ->
-            RelationItem(member, onMemberClick)
+            RelationItem(relation = member.first, memberName = member.second.fullName, city = member.second.city, memberId = member.second.memberId, onMemberClick)
             if (index < members.lastIndex)
                 HorizontalDivider(
                     modifier = Modifier.padding(start = 32.dp),
@@ -239,33 +362,72 @@ fun RelationGroup(
 
 
 @Composable
-fun RelationItem(member: Pair<String, FamilyMember>, onClick: (FamilyMember) -> Unit) {
-    val icon = getIcon(member.first)
+fun RelationGroupWithSpouse(
+    title: String,
+    members: List<Pair<String, ChildWithSpouseDto>>,
+    onMemberClick: (Int) -> Unit
+) {
+    println("RelationGroup: $title  members: $members")
+    if (members.isEmpty()) return
+
+    val dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+    val labelColor = MaterialTheme.colorScheme.primary
+
+    Column(modifier = Modifier.padding(vertical = 6.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = labelColor
+            )
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        members.sortedBy { it.second.child.dob }.forEachIndexed { index, member ->
+            RelationItem(relation = member.first, memberName = member.second.child.fullName, city = member.second.child.city, memberId = member.second.child.memberId, onMemberClick)
+            member.second.spouseId?.let { spouseId ->
+                Spacer(modifier = Modifier.height(4.dp))
+                RelationItem(relation = member.first.getSpouseRelation(), memberName = member.second.spouseFullName?:"", city = member.second.child.city, memberId = spouseId, onMemberClick)
+            }
+            if (index < members.lastIndex)
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 32.dp),
+                    thickness = 0.5.dp,
+                    color = dividerColor
+                )
+        }
+    }
+}
+
+
+@Composable
+fun RelationItem(relation: String, memberName: String, city: String, memberId: Int, onClick: (Int) -> Unit) {
+    val icon = getIcon(relation)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick(member.second) }
+            .clickable { onClick(memberId) }
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = icon,
-            style =/**/ MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(
-                text = "${member.first.inHindi()} - ${member.second.fullName}",
+                text = "${relation.inHindi()} - $memberName",
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = member.second.city,
+                text = city,
                 style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
             )
         }
     }
 }
+
 
 @Composable
 fun NoInternetScreen(onRetry: () -> Unit) {

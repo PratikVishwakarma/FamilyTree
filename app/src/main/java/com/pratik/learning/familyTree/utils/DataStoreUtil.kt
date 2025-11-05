@@ -31,7 +31,7 @@ object SyncPrefs {
         val lastSync = getLastSyncTime(context)
         val currentTime = System.currentTimeMillis()
 //        val threeHoursMillis = 3 * 60 * 60 * 1000
-        val threeHoursMillis = if (isAdmin) 1 * 1 * 60 * 1000 else 3 * 60 * 60 * 1000
+        val threeHoursMillis = if (isAdmin) 1 * 5 * 60 * 1000 else 3 * 60 * 60 * 1000
         val isSyncRequired = currentTime - lastSync >= threeHoursMillis
         if (isSyncRequired)
             setLastSyncTime(context, currentTime)

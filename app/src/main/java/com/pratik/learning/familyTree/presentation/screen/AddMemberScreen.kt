@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -38,7 +39,7 @@ fun AddMemberScreen(
     val error = viewModel.error.collectAsState().value
     // Helper lambda to launch the date picker dialog and update state
     val openDatePicker: (Boolean) -> Unit = { isDob ->
-        showDatePicker(context, date = if (isDob) formState.dob else formState.dod, maxDate = if (isDob) "" else formState.dob) { newDate ->
+        showDatePicker(context, date = if (isDob) formState.dob else formState.dod, minDate = if (isDob) "" else formState.dob) { newDate ->
             formState = if (isDob) {
                 formState.copy(dob = newDate)
             } else {
@@ -68,7 +69,11 @@ fun AddMemberScreen(
                 singleLine = true,
                 onValueChange = { formState = formState.copy(fullName = it) },
                 label = { Text("Full Name".inHindi()) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    keyboardType = KeyboardType.Text
+                )
             )
             Spacer(Modifier.height(16.dp))
             // 1. Gotra
@@ -78,7 +83,11 @@ fun AddMemberScreen(
                 singleLine = true,
                 onValueChange = { formState = formState.copy(gotra = it) },
                 label = { Text("Gotra".inHindi()) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    keyboardType = KeyboardType.Text
+                )
             )
             Spacer(Modifier.height(16.dp))
 
@@ -182,7 +191,11 @@ fun AddMemberScreen(
                 singleLine = true,
                 onValueChange = { formState = formState.copy(city = it) },
                 label = { Text("City / Place") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    keyboardType = KeyboardType.Text
+                )
             )
             Spacer(Modifier.height(16.dp))
 

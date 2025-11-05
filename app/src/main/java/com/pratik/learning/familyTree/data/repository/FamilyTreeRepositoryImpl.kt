@@ -12,6 +12,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.pratik.learning.familyTree.data.local.dao.FamilyTreeDao
 import com.pratik.learning.familyTree.data.local.dto.AncestorNode
+import com.pratik.learning.familyTree.data.local.dto.ChildWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.DescendantNode
 import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
@@ -28,6 +29,7 @@ import com.pratik.learning.familyTree.utils.RELATION_TYPE_GREAT_GREAT_GRANDCHILD
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_GREAT____GRANDCHILD
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER
 import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
+import com.pratik.learning.familyTree.utils.SyncPrefs.setLastSyncTime
 import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.logger
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -57,8 +59,15 @@ class FamilyTreeRepositoryImpl(
         return dao.insertMember(member)
     }
 
-    override suspend fun updateMember(member: FamilyMember) {
-        logger("updateMember: $member")
+    override suspend fun updateMember(member: FamilyMember, isGotraChanged: Boolean, spouseId: Int) {
+        logger("updateMember: $member  isGotraChanged = $isGotraChanged  spouseId = $spouseId")
+        dao.updateGotra(member.memberId, member.gotra)
+        if (spouseId != -1 ) {
+            logger("updateMember: spouseId = $spouseId")
+            dao.updateGotra(spouseId, member.gotra)
+        }
+        updateDescendantsGotra(member.memberId, member.gotra)
+
         dao.updateMember(member)
     }
 
@@ -106,6 +115,26 @@ class FamilyTreeRepositoryImpl(
             ),
             pagingSourceFactory = { dao.getAllMembersBySearchQuery(name, isUnmarried) }
         ).flow
+    }
+
+    /**
+     * to update the Gotra of all the unmarried or male members when elderly gotra is updated
+     * */
+    private suspend fun updateDescendantsGotra(memberId: Int, newGotra: String) {
+        dao.getChildrenWithSpouse(memberId).forEach { child ->
+            if (child.spouseId == null || child.spouseId == -1) {
+                logger("updateDescendantsGotra:: updating gotra for ${child.child.fullName} , newGotra = $newGotra")
+                updateDescendantsGotra(child.child.memberId, newGotra)
+                dao.updateGotra(child.child.memberId, newGotra)
+            } else {
+                if (child.child.gender == GENDER_TYPE_MALE) {
+                    logger("updateDescendantsGotra:: updating gotra for ${child.child.fullName}  || spouse = ${child.spouseFullName}, newGotra = $newGotra")
+                    updateDescendantsGotra(child.child.memberId, newGotra)
+                    dao.updateGotra(child.child.memberId, newGotra)
+                    dao.updateGotra(child.spouseId, newGotra)
+                }
+            }
+        }
     }
 
     // The complex, derived relationship logic (like reciprocal and inferred relations)
@@ -266,6 +295,11 @@ class FamilyTreeRepositoryImpl(
         return dao.getChildren(memberId)?: emptyList()
     }
 
+    override suspend fun getChildrenWithSpouse(memberId: Int): List<ChildWithSpouseDto> {
+        logger("getChildrenWithSpouse:: memberId = $memberId")
+        return dao.getChildrenWithSpouse(memberId)
+    }
+
     override suspend fun downloadDataFromServer() : Boolean {
         logger("loadLocalDBFromServer:: Started fetching data from Server")
         try {
@@ -295,6 +329,7 @@ class FamilyTreeRepositoryImpl(
             logger("loadLocalDBFromServer:: Successfully fetched membersJson 32 = $members, relationsJson = $relations")
             // 3. Update Room database
             dao.insertAllMembersAndRelations(members = members, relations = relations)
+            setLastSyncTime(context, System.currentTimeMillis())
             return true
         } catch (e: Exception) {
             Log.e("loadLocalDBFromServer", "Sync failed: ${e.message}", e)

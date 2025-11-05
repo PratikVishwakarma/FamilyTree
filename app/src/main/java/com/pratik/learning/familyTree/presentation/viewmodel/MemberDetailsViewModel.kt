@@ -1,23 +1,29 @@
 package com.pratik.learning.familyTree.presentation.viewmodel
 
 import android.content.Context
-import android.util.Log
+import android.graphics.Bitmap
+import android.view.View
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.core.view.drawToBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.pratik.learning.familyTree.data.local.dto.DescendantNode
-import com.pratik.learning.familyTree.utils.MemberFormState
-import com.pratik.learning.familyTree.utils.RelationFormState
 import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
-import com.pratik.learning.familyTree.data.local.dto.FullFamilyTree
 import com.pratik.learning.familyTree.data.local.dto.MemberRelations
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
-import com.pratik.learning.familyTree.presentation.component.ConfirmationPopup
+import com.pratik.learning.familyTree.presentation.UIState
 import com.pratik.learning.familyTree.utils.GENDER_TYPE_FEMALE
 import com.pratik.learning.familyTree.utils.GENDER_TYPE_MALE
+import com.pratik.learning.familyTree.utils.MemberFormState
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_BROTHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_CHILD
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_DAUGHTER
@@ -33,6 +39,7 @@ import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER_IN_LAW
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_SISTER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_SON
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_WIFE
+import com.pratik.learning.familyTree.utils.RelationFormState
 import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
 import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.logger
@@ -104,7 +111,7 @@ class MemberDetailsViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             currentMember = familyTreeRepository.getMemberById(memberId)
             if (currentMember != null) {
-               logger("Member Details: $currentMember")
+                logger("Member Details: $currentMember")
                 _member.value = MemberFormState(
                     fullName = currentMember!!.fullName,
                     gotra = currentMember!!.gotra,
@@ -136,7 +143,7 @@ class MemberDetailsViewModel @Inject constructor(
     private suspend fun getRelations(relations: List<FamilyRelation>) {
         relations.forEach { relation ->
             val memberDetails = familyTreeRepository.getMemberById(relation.relatedMemberId)
-           logger("getRelations for relation: $relation")
+            logger("getRelations for relation: $relation")
             memberDetails?.let {
                 when (relation.relationType) {
                     RELATION_TYPE_FATHER -> {
@@ -198,9 +205,9 @@ class MemberDetailsViewModel @Inject constructor(
      * this will fetch the member's In-Laws details
      * */
     private suspend fun fetchInLawsDetails(spouse: FamilyMember) {
-       logger("fetchInLawsDetails for spouse: $spouse")
+        logger("fetchInLawsDetails for spouse: $spouse")
         val parentsWithMemberId = familyTreeRepository.getParentsWithMemberId(spouse.memberId)
-       logger("parentsWithMemberId: $parentsWithMemberId")
+        logger("parentsWithMemberId: $parentsWithMemberId")
         parentsWithMemberId.forEach { parent ->
             when (parent.first) {
                 RELATION_TYPE_FATHER -> _relations.update { current ->
@@ -227,7 +234,7 @@ class MemberDetailsViewModel @Inject constructor(
     private suspend fun fetchGrandParents(member: FamilyMember, isParental: Boolean = true) {
         logger("fetchGrandParents for isParental: $isParental  member: $member")
         val parentsWithMemberId = familyTreeRepository.getParentsWithMemberId(member.memberId)
-       logger("fetchGrandParents: $parentsWithMemberId")
+        logger("fetchGrandParents: $parentsWithMemberId")
         parentsWithMemberId.forEach { parent ->
             when (parent.first) {
                 RELATION_TYPE_FATHER -> _relations.update { current ->
@@ -275,12 +282,12 @@ class MemberDetailsViewModel @Inject constructor(
             "fetchSiblings for member: ${member.value}"
         )
         relations.value.parents.forEach {
-           logger("FetchSiblings: for member: $it")
+            logger("FetchSiblings: for member: $it")
             val siblings = familyTreeRepository.getChildren(it.second.memberId)
-           logger("siblings: $siblings")
+            logger("siblings: $siblings")
             siblings.forEach { sibling ->
                 if (sibling.memberId != memberId) {
-                   logger("sibling: $sibling")
+                    logger("sibling: $sibling")
                     when (sibling.gender) {
                         GENDER_TYPE_MALE -> _relations.update { current ->
                             current.copy(
@@ -309,13 +316,13 @@ class MemberDetailsViewModel @Inject constructor(
         logger(
             "fetchChildren for member: ${member.value}"
         )
-       logger("fetchChildren: for member: $memberId")
-        val children = familyTreeRepository.getChildren(memberId)
-       logger("total children: $children")
+        logger("fetchChildren: for member: $memberId")
+        val children = familyTreeRepository.getChildrenWithSpouse(memberId)
+        logger("total children: $children")
         children.forEach { child ->
-            if (child.memberId != memberId) {
-               logger("child: $child")
-                when (child.gender) {
+            if (child.child.memberId != memberId) {
+                logger("child: $child")
+                when (child.child.gender) {
                     GENDER_TYPE_MALE -> _relations.update { current ->
                         current.copy(
                             children = (current.children + Pair(
@@ -398,7 +405,7 @@ class MemberDetailsViewModel @Inject constructor(
     }
 
     fun updateMember(navController: NavController) {
-       logger("updateMember: ${member.value}")
+        logger("updateMember: ${member.value}")
         viewModelScope.launch(Dispatchers.IO) {
             val familyMember = FamilyMember(
                 memberId = memberId,
@@ -419,7 +426,11 @@ class MemberDetailsViewModel @Inject constructor(
                 return@launch
             }
 
-            familyTreeRepository.updateMember(familyMember)
+            if (currentMember?.gotra != member.value.gotra && currentMember?.gender == GENDER_TYPE_MALE) {
+                // gotra of the male user has been changes so need to update the spouse and descendants gotra as well
+                familyTreeRepository.updateMember(familyMember, true, relations.value.spouse?.second?.memberId ?: -1)
+            } else
+                familyTreeRepository.updateMember(familyMember)
             withContext(Dispatchers.Main) {
                 setIsDataUpdateRequired(context, true)
                 navController.navigateUp()
@@ -433,7 +444,7 @@ class MemberDetailsViewModel @Inject constructor(
 
 
     fun createRelation(formState: RelationFormState, isCreate: Boolean = false) {
-       logger("createRelation: $formState")
+        logger("createRelation: $formState")
         if (formState.relatedToMemberId == -1) return
         viewModelScope.launch(Dispatchers.IO) {
             val newRelations = ArrayList<FamilyRelation>()
@@ -443,6 +454,7 @@ class MemberDetailsViewModel @Inject constructor(
                 RELATION_TYPE_CHILD -> {
 
                 }
+
                 RELATION_TYPE_FATHER, RELATION_TYPE_MOTHER -> {
                     // add parents relation
                     val isFather = formState.relation == RELATION_TYPE_FATHER
@@ -503,7 +515,7 @@ class MemberDetailsViewModel @Inject constructor(
                     // ex if adding Shivani's -> Husband -> Pratik then auto add Pratik's -> Wife -> Shivani
 
                     // Related Member's -> Husband/Wife -> Member
-                    relationText.add("${member.value.fullName} ${if (isHusband) "Wife".relationTextInHindi() else "Husband".relationTextInHindi()} - ${member.value.fullName}")
+                    relationText.add("${formState.relatedToFullName} ${if (isHusband) "Wife".relationTextInHindi() else "Husband".relationTextInHindi()} - ${member.value.fullName}")
                     logger(
                         "createRelation ${formState.relatedToFullName}'s ${if (isHusband) "Wife" else "Husband"} ${member.value.fullName}"
                     )
@@ -567,7 +579,10 @@ class MemberDetailsViewModel @Inject constructor(
         mRelations.siblings.forEach { (_, member) -> ids.add(member.memberId) }
 
         // Add children
-        mRelations.children.forEach { (_, member) -> ids.add(member.memberId) }
+        mRelations.children.forEach { (_, member) ->
+            ids.add(member.child.memberId)
+            member.spouseId?.let {  ids.add(it) }
+        }
 
         // Add grandchildren
         mRelations.grandchildren.forEach { (_, member) -> ids.add(member.memberId) }
@@ -605,10 +620,26 @@ class MemberDetailsViewModel @Inject constructor(
         if (_uiState.value is UIState.IdealUIState)
             _uiState.value = popupUIState
     }
-}
 
 
-sealed class UIState {
-    data object IdealUIState : UIState()
-    data class ConfirmationUIState(val title: String, val message: String) : UIState()
+    suspend fun captureComposableAsBitmap(
+        context: Context,
+        content: @Composable () -> Unit
+    ): Bitmap = withContext(Dispatchers.Main) {
+        val composeView = ComposeView(context)
+        composeView.setContent {
+            Box(Modifier.background(Color.White)) { content() }
+        }
+
+        // Measure & layout
+        composeView.measure(
+            View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.AT_MOST)
+        )
+        composeView.layout(0, 0, composeView.measuredWidth, composeView.measuredHeight)
+
+        composeView.drawToBitmap()
+    }
+
 }
+

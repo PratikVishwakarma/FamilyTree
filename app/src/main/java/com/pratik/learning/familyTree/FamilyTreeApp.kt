@@ -1,7 +1,6 @@
 package com.pratik.learning.familyTree
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner

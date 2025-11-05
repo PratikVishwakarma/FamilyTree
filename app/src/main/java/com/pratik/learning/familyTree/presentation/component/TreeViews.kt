@@ -1,20 +1,23 @@
 package com.pratik.learning.familyTree.presentation.component
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.graphics.Bitmap
+import android.os.Build
+import android.view.View
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -30,29 +33,35 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.doOnLayout
+import androidx.core.view.drawToBitmap
 import com.pratik.learning.familyTree.data.local.dto.AncestorNode
 import com.pratik.learning.familyTree.data.local.dto.DescendantNode
 import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
+import com.pratik.learning.familyTree.utils.getCombineNameWithLivingStatus
 import com.pratik.learning.familyTree.utils.getCombinedName
 import com.pratik.learning.familyTree.utils.logger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun DualFamilyTreeView(
@@ -62,109 +71,109 @@ fun DualFamilyTreeView(
 ) {
     val scrollState = rememberScrollState()
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .horizontalScroll(scrollState)
-                    .padding(16.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // 🌳 Title
-                    Text(
-                        text = "🌳 परिवार वंश वृक्ष",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .horizontalScroll(scrollState)
+            .padding(16.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // 🌳 Title
+            Text(
+                text = "🌳 परिवार वंश वृक्ष",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
-                    // 💞 Current Couple
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = if (tree.spouse != null) "💞 वर्तमान दंपत्ति" else "वर्तमान सदस्य",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.primary
+            // 💞 Current Couple
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = if (tree.spouse != null) "💞 वर्तमान दंपत्ति" else "वर्तमान सदस्य",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                if (tree.self != null) {
+                    if (tree.spouse != null) {
+                        CoupleCard(
+                            member = tree.self,
+                            spouse = tree.spouse,
+                            relationWithMember = ""
                         )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        if (tree.self != null) {
-                            if (tree.spouse != null) {
-                                CoupleCard(
-                                    member = tree.self,
-                                    spouse = tree.spouse,
-                                    relationWithMember = ""
-                                )
-                            } else {
-                                MemberCard(member = tree.self)
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // 👨👩 Ancestor Sides
-                    Row(
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        // 👨 Paternal Side
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "👨 पितृ पक्ष",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            tree.paternalLineRoot?.let {
-                                AncestorNodeViewWithLines(it, onMemberClick)
-                            } ?: Text(
-                                text = "— कोई डेटा नहीं —",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-
-                        // 👩 Maternal Side
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "👩 मातृ पक्ष",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            tree.maternalLineRoot?.let {
-                                AncestorNodeViewWithLines(it, onMemberClick)
-                            } ?: Text(
-                                text = "— कोई डेटा नहीं —",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                    // 🌿 Descendant Tree
-                    descendantNode?.let {
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = "🌿 परिवार वंशज वृक्ष",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-                        HorizontalFamilyTree(
-                            node = it,
-                            onMemberClick = onMemberClick
-                        )
+                    } else {
+                        MemberCard(member = tree.self)
                     }
                 }
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // 👨👩 Ancestor Sides
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // 👨 Paternal Side
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "👨 पितृ पक्ष",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    tree.paternalLineRoot?.let {
+                        AncestorNodeViewWithLines(it, onMemberClick)
+                    } ?: Text(
+                        text = "— कोई डेटा नहीं —",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                // 👩 Maternal Side
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "👩 मातृ पक्ष",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    tree.maternalLineRoot?.let {
+                        AncestorNodeViewWithLines(it, onMemberClick)
+                    } ?: Text(
+                        text = "— कोई डेटा नहीं —",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // 🌿 Descendant Tree
+            descendantNode?.let {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "🌿 परिवार वंशज वृक्ष",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                HorizontalFamilyTree(
+                    node = it,
+                    onMemberClick = onMemberClick
+                )
+            }
+        }
+    }
 
 }
 
@@ -266,7 +275,6 @@ fun CoupleCard(
     relationWithMember: String,
     onMemberClick: ((Int) -> Unit)? = null
 ) {
-    val background = Color(0xFFE7F0FF)
     val textColor = Color.Black
 
     Card(
@@ -276,16 +284,21 @@ fun CoupleCard(
             .wrapContentHeight(),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = background)
+        colors = CardDefaults.cardColors(
+            containerColor = if (member.gender == "F")
+                MaterialTheme.colorScheme.tertiaryContainer
+            else
+                MaterialTheme.colorScheme.primaryContainer
+        ),
     ) {
-        val combinedSurname = member.fullName.getCombinedName(spouse?.fullName ?: "")
+        val isBothParentsDead = !member.isLiving && (spouse?.isLiving == false)
+        val combinedSurname = if (isBothParentsDead) member.fullName.getCombinedName(spouse?.fullName ?: "") else member.getCombineNameWithLivingStatus(spouse)
         println("CoupleCard: combinedSurname: $combinedSurname")
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(12.dp)
         ) {
-
             Text(
                 text = combinedSurname,
                 fontWeight = FontWeight.Bold,
@@ -303,8 +316,7 @@ fun CoupleCard(
             }
 
             // Show living status
-            val isLiving = member.isLiving && (spouse?.isLiving != false)
-            if (!isLiving) {
+            if (isBothParentsDead) {
                 Text(
                     text = "स्वर्गवासी",
                     color = Color.Red,
@@ -315,7 +327,6 @@ fun CoupleCard(
         }
     }
 }
-
 
 
 @Composable
@@ -404,7 +415,7 @@ fun FamilyCoupleCard(
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        val combinedName = node.member.fullName.getCombinedName(node.spouse?.fullName ?: "")
+        val combinedName = node.member.getCombineNameWithLivingStatus(node.spouse)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(12.dp)
@@ -460,7 +471,8 @@ fun HorizontalFamilyTree(
             // ─ Draw children inside a Box so we can measure their width
             Box {
 //                var childrenWidth by remember { mutableFloatStateOf(0f) }
-                val childrenWidth = if (node.children.size == 1) 2.dp else (node.children.size * 220).dp
+                val childrenWidth =
+                    if (node.children.size == 1) 2.dp else (node.children.size * 220).dp
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // Horizontal line (only drawn once width is known)
@@ -474,7 +486,7 @@ fun HorizontalFamilyTree(
                                 color = lineColor,
                                 start = Offset(0f, size.height / 2),
                                 end = Offset(size.width, size.height / 2),
-                                strokeWidth = 3f
+                                strokeWidth = 4f
                             )
                         }
                     }
@@ -533,8 +545,9 @@ fun FamilyNodeCard(node: DescendantNode, onMemberClick: (Int) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = node.member.fullName.getCombinedName(node.spouse?.fullName ?: ""),
+                text = node.member.getCombineNameWithLivingStatus(node.spouse),
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface
             )
             if (node.member.city.isNotEmpty()) {
@@ -546,4 +559,43 @@ fun FamilyNodeCard(node: DescendantNode, onMemberClick: (Int) -> Unit) {
             }
         }
     }
+}
+
+
+@RequiresApi(Build.VERSION_CODES.Q)
+@Composable
+fun captureComposableToBitmap(content: @Composable () -> Unit): Bitmap {
+    val density = LocalDensity.current
+    val renderNode = remember { android.graphics.RenderNode("ComposeBitmapNode") }
+    val bitmapRef = remember { mutableStateOf<Bitmap?>(null) }
+
+    AndroidView(
+        factory = { context ->
+            ComposeView(context).apply {
+                setContent {
+                    Box(
+                        modifier = Modifier
+                            .background(Color.White)
+                            .padding(16.dp)
+                    ) { content() }
+                }
+            }
+        },
+        update = { composeView ->
+            composeView.doOnLayout {
+                val width = it.width
+                val height = it.height
+
+                if (width > 0 && height > 0) {
+                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    val canvas = android.graphics.Canvas(bitmap)
+                    composeView.draw(canvas)
+                    bitmapRef.value = bitmap
+                }
+            }
+        }
+    )
+
+    // Wait until the bitmap is drawn
+    return bitmapRef.value ?: Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
 }

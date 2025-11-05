@@ -18,6 +18,7 @@ fun AncestryScreen(navController: NavController, viewModel: MemberDetailsViewMod
         Log.d("DetailsScreen", "LaunchedEffect")
         viewModel.fetchAncestry()
     }
+
     val familyTree = viewModel.familyTree.collectAsState().value
     val descendantTree = viewModel.descendantTree.collectAsState().value
     Container(
@@ -25,8 +26,7 @@ fun AncestryScreen(navController: NavController, viewModel: MemberDetailsViewMod
         rightButton = null
     ) {
         LazyColumn {
-
-            item{
+            item {
                 familyTree?.let {
                     val onMemberClick: (Int) -> Unit = { memberId ->
                         navController.navigate(route = AncestryRoute(memberId))

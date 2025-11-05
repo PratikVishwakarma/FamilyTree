@@ -24,12 +24,13 @@ import com.pratik.learning.familyTree.navigation.AddRelationRoute
 import com.pratik.learning.familyTree.navigation.AncestryRoute
 import com.pratik.learning.familyTree.navigation.EditMemberRoute
 import com.pratik.learning.familyTree.navigation.MemberDetailsRoute
+import com.pratik.learning.familyTree.presentation.UIState
 import com.pratik.learning.familyTree.presentation.component.ConfirmationPopup
 import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.MemberInfoSection
 import com.pratik.learning.familyTree.presentation.component.RelationGroup
+import com.pratik.learning.familyTree.presentation.component.RelationGroupWithSpouse
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
-import com.pratik.learning.familyTree.presentation.viewmodel.UIState
 import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.isAdmin
 import com.pratik.learning.familyTree.utils.logger
@@ -37,9 +38,9 @@ import com.pratik.learning.familyTree.utils.logger
 @Composable
 fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsViewModel) {
 
-    val onMemberClick: (FamilyMember) -> Unit = { member ->
-        if (member.memberId != viewModel.memberId) {
-            navController.navigate(route = MemberDetailsRoute(member.memberId))
+    val onMemberClick: (Int) -> Unit = { memberId ->
+        if (memberId != viewModel.memberId) {
+            navController.navigate(route = MemberDetailsRoute(memberId))
         }
     }
     LaunchedEffect(Unit) {
@@ -110,7 +111,7 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
                     onMemberClick)
                 RelationGroup("In-Laws", relations.inLaws, onMemberClick)
                 RelationGroup("Siblings", relations.siblings, onMemberClick)
-                RelationGroup("Children", relations.children, onMemberClick)
+                RelationGroupWithSpouse("Children", relations.children, onMemberClick)
                 RelationGroup("Grandchildren", relations.grandchildren, onMemberClick)
                 RelationGroup("Grandparents ", relations.grandParentsFather, onMemberClick)
                 RelationGroup("Grandparents ", relations.grandParentsMother, onMemberClick)

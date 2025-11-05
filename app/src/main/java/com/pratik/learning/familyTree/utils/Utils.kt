@@ -2,15 +2,21 @@ package com.pratik.learning.familyTree.utils
 
 import android.app.DatePickerDialog
 import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfDocument
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
+import java.io.File
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.Period
@@ -102,11 +108,10 @@ fun getIcon(relation: String): String {
     return when (relation) {
         RELATION_TYPE_FATHER, RELATION_TYPE_FATHER_IN_LAW -> "🧔‍♂️"
         RELATION_TYPE_MOTHER, RELATION_TYPE_MOTHER_IN_LAW -> "🧑️"
-        RELATION_TYPE_BROTHER -> "👦️"
+        RELATION_TYPE_BROTHER, RELATION_TYPE_SON -> "👦️"
         RELATION_TYPE_SISTER -> "️️👧️"
-        RELATION_TYPE_HUSBAND -> "🤵🏻‍♂️"
-        RELATION_TYPE_WIFE -> "️👰🏻‍♀️"
-        RELATION_TYPE_SON, RELATION_TYPE_DAUGHTER -> "👶"
+        RELATION_TYPE_HUSBAND, RELATION_TYPE_SON_IN_LAW -> "🤵🏻‍♂️"
+        RELATION_TYPE_WIFE, RELATION_TYPE_DAUGHTER_IN_LAW,RELATION_TYPE_DAUGHTER -> "👩🏻‍"
         RELATION_TYPE_GRANDFATHER_F, RELATION_TYPE_GRANDFATHER_M -> "👴"
         RELATION_TYPE_GRANDMOTHER_F, RELATION_TYPE_GRANDMOTHER_M -> "👵"
         else -> ""
@@ -117,6 +122,8 @@ fun String.inHindi(): String {
     return when (this.lowercase()) {
         RELATION_TYPE_FATHER.lowercase() -> "पिता"
         RELATION_TYPE_MOTHER.lowercase() -> "माता"
+        RELATION_TYPE_SON_IN_LAW.lowercase() -> "दामाद"
+        RELATION_TYPE_DAUGHTER_IN_LAW.lowercase() -> "बहू"
         RELATION_TYPE_FATHER_IN_LAW.lowercase() -> "ससुर"
         RELATION_TYPE_MOTHER_IN_LAW.lowercase() -> "सास"
         RELATION_TYPE_BROTHER.lowercase() -> "भाई"
@@ -163,6 +170,14 @@ fun String.inHindi(): String {
     }
 }
 
+fun String.getSpouseRelation(): String {
+    return when(this) {
+        RELATION_TYPE_SON -> RELATION_TYPE_DAUGHTER_IN_LAW
+        RELATION_TYPE_DAUGHTER -> RELATION_TYPE_SON_IN_LAW
+        else -> ""
+    }
+}
+
 
 fun String.relationTextInHindi(): String {
     return when (this) {
@@ -179,7 +194,9 @@ fun String.relationTextInHindi(): String {
         RELATION_TYPE_GRANDFATHER_F -> "दादा जी"
         RELATION_TYPE_GRANDMOTHER_F -> "दादी जी"
         RELATION_TYPE_GRANDFATHER_M -> "नाना जी"
-        RELATION_TYPE_GRANDMOTHER_M -> "नानी जी"
+        RELATION_TYPE_GRANDMOTHER_M -> "दामाद"
+        RELATION_TYPE_DAUGHTER_IN_LAW -> "बहू"
+        RELATION_TYPE_SON_IN_LAW -> "बहू"
         GENDER_TYPE_MALE -> "पुरुष"
         GENDER_TYPE_FEMALE -> "महिला"
         "Full Name" -> "नाम"
@@ -208,9 +225,20 @@ fun String.getCombinedName(spouseName: String = ""): String {
     val spouseSN = spouseName.getSurname()
     if (spouseName.isEmpty()) return this
     return  if (memberSN == spouseSN && memberSN.isNotEmpty()) {
-       this.getFirstName() + " ❤️ " + spouseName.getFirstName() + " " + memberSN
+       this.getFirstName() + " ❤️" + spouseName.getFirstName() + " \n" + memberSN
     } else {
-        "$this ❤️ $spouseName $memberSN"
+        "$this ❤️$spouseName $memberSN"
+    }
+}
+
+fun FamilyMember.getCombineNameWithLivingStatus(spouse: FamilyMember?): String {
+    val memberSN = this.fullName.getSurname()
+    val spouseSN = spouse?.fullName?.getSurname()?: ""
+    if (spouse == null) return "${this.fullName} ${ if(this.isLiving) "" else  "🕊"}"
+    return  if (memberSN == spouseSN && memberSN.isNotEmpty()) {
+        "${this.fullName.getFirstName()} ${ if(this.isLiving) "" else  "🕊"} ❤️ ${spouse.fullName.getFirstName()} ${if (spouse.isLiving) "" else "🕊"} \n$memberSN"
+    } else {
+        "${this.fullName} ${ if(this.isLiving) "" else  "🕊"}❤️${spouse.fullName} ${if (spouse.isLiving) "" else "🕊"} $memberSN"
     }
 }
 
@@ -272,7 +300,7 @@ data class RelationFormState(
 fun showDatePicker(
     context: Context,
     date: String = "",
-    maxDate: String = "",
+    minDate: String = "",
     onDateSelected: (String) -> Unit
 ) {
     val calendar = Calendar.getInstance()
@@ -293,17 +321,6 @@ fun showDatePicker(
         calendar.time = todayCalendar.time
     }
 
-    if (maxDate.isNotBlank()) {
-        try {
-            val parsedDate = dateFormat.parse(maxDate)
-            parsedDate?.let {
-                todayCalendar.time = it
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
 
     val currentYear = calendar.get(Calendar.YEAR)
     val currentMonth = calendar.get(Calendar.MONTH)
@@ -321,8 +338,18 @@ fun showDatePicker(
         currentDay
     )
 
-    // Optional: Prevent selecting a future date
+    // Optional: Prevent selecting less date for dod then dob
     datePickerDialog.datePicker.maxDate = todayCalendar.timeInMillis
+    if (minDate.isNotBlank()) {
+        try {
+            val parsedDate = dateFormat.parse(minDate)
+            parsedDate?.let {
+               datePickerDialog.datePicker.minDate = it.time
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     datePickerDialog.show()
 }
@@ -373,4 +400,43 @@ fun validateMemberData(member: MemberFormState): String {
 
     return error
 }
+
+
+
+fun saveBitmapAsImage(context: Context, bitmap: Bitmap): Uri {
+    val filename = "FamilyTree_${System.currentTimeMillis()}.png"
+    val fos = context.openFileOutput(filename, Context.MODE_PRIVATE)
+    bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+    fos.close()
+
+    val file = File(context.filesDir, filename)
+    return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+}
+
+fun saveBitmapAsPdf(context: Context, bitmap: Bitmap): Uri {
+    val filename = "FamilyTree_${System.currentTimeMillis()}.pdf"
+    val file = File(context.filesDir, filename)
+
+    val document = PdfDocument()
+    val pageInfo = PdfDocument.PageInfo.Builder(bitmap.width, bitmap.height, 1).create()
+    val page = document.startPage(pageInfo)
+    val canvas = page.canvas
+    canvas.drawBitmap(bitmap, 0f, 0f, null)
+    document.finishPage(page)
+
+    file.outputStream().use { document.writeTo(it) }
+    document.close()
+
+    return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+}
+
+fun shareFile(context: Context, uri: Uri, mimeType: String) {
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = mimeType
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share Family Tree"))
+}
+
 

@@ -68,7 +68,7 @@ fun EditMemberScreen(
 
     // Helper lambda to launch the date picker dialog and update state
     val openDatePicker: (Boolean) -> Unit = { isDob ->
-        showDatePicker(context, date = if (isDob) formState.dob else formState.dod, maxDate = if (isDob) "" else formState.dob) { newDate ->
+        showDatePicker(context, date = if (isDob) formState.dob else formState.dod, minDate = if (isDob) "" else formState.dob) { newDate ->
             if (isDob) {
                 viewModel.onDOBChanged(newDate)
             } else {
