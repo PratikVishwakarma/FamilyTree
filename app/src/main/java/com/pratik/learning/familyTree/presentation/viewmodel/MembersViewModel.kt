@@ -23,11 +23,11 @@ import com.pratik.learning.familyTree.utils.RELATION_TYPE_SISTER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_SON
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_WIFE
 import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
+import com.pratik.learning.familyTree.utils.calculateAgeFromDob
 import com.pratik.learning.familyTree.utils.logger
 import com.pratik.learning.familyTree.utils.validateMemberData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
@@ -80,23 +80,28 @@ class MembersViewModel @Inject constructor(
                         pagingData
                             // filter the relation type by gender
                             .filter { member ->
-                            when (relationType) {
-                                RELATION_TYPE_MOTHER,
-                                RELATION_TYPE_DAUGHTER,
-                                RELATION_TYPE_SISTER,
-                                RELATION_TYPE_WIFE -> member.gender == "F"
+                                when (relationType) {
+                                    RELATION_TYPE_MOTHER,
+                                    RELATION_TYPE_DAUGHTER,
+                                    RELATION_TYPE_SISTER,
+                                    RELATION_TYPE_WIFE -> member.gender == "F"
 
-                                RELATION_TYPE_FATHER,
-                                RELATION_TYPE_SON,
-                                RELATION_TYPE_BROTHER,
-                                RELATION_TYPE_HUSBAND -> member.gender == "M"
+                                    RELATION_TYPE_FATHER,
+                                    RELATION_TYPE_SON,
+                                    RELATION_TYPE_BROTHER,
+                                    RELATION_TYPE_HUSBAND -> member.gender == "M"
 
-                                else -> true
+                                    else -> true
+                                }
                             }
-                        }
                             // filter out already related members like spouse, parents, siblings, grandparents etc.
                             .filter { member ->
                                 relatedMembers.isEmpty() || member.memberId !in relatedMembers
+                            }.filter {
+                                // additional filter in case of unmarried + not dead + younger than 45 years
+                                if (isUnmarried) {
+                                    it.isLiving && calculateAgeFromDob(it.dob) < 45
+                                } else true
                             }
                     }
             }.cachedIn(viewModelScope)
@@ -106,7 +111,7 @@ class MembersViewModel @Inject constructor(
     }
 
     fun addMember(member: MemberFormState, navController: NavController) {
-        logger( "addMember:: $member")
+        logger("addMember:: $member")
 
 
         viewModelScope.launch {
