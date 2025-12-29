@@ -137,6 +137,7 @@ fun String.inHindi(): String {
         RELATION_TYPE_GRANDFATHER_M.lowercase() -> "नाना जी"
         RELATION_TYPE_GRANDMOTHER_M.lowercase() -> "नानी जी"
         RELATION_TYPE_GRANDCHILD.lowercase() -> "पोता"
+        RELATION_TYPE_GRANDCHILD_F.lowercase() -> "पोती"
         RELATION_TYPE_GREAT_GRANDCHILD.lowercase() -> "परपोता"
         RELATION_TYPE_GREAT_GREAT_GRANDCHILD.lowercase() -> "पर परपोता"
         RELATION_TYPE_GREAT____GRANDCHILD.lowercase() -> "पर...परपोता"
@@ -166,6 +167,7 @@ fun String.inHindi(): String {
         "no", "cancel" -> "नहीं"
         "delete all relations" -> "सभी संबंध हटाएँ"
         "are you sure you want to delete all the relations for member?" -> "क्या आप वाकई सदस्य के सभी संबंध हटाना चाहते हैं?                "
+        "please scroll left or down to see whole family tree" -> "कृपया संपूर्ण परिवार वृक्ष देखने के लिए बाईं ओर या नीचे स्क्रॉल करें"
         else -> this
     }
 }
@@ -194,9 +196,9 @@ fun String.relationTextInHindi(): String {
         RELATION_TYPE_GRANDFATHER_F -> "दादा जी"
         RELATION_TYPE_GRANDMOTHER_F -> "दादी जी"
         RELATION_TYPE_GRANDFATHER_M -> "नाना जी"
-        RELATION_TYPE_GRANDMOTHER_M -> "दामाद"
+        RELATION_TYPE_GRANDMOTHER_M -> "नानी जी"
         RELATION_TYPE_DAUGHTER_IN_LAW -> "बहू"
-        RELATION_TYPE_SON_IN_LAW -> "बहू"
+        RELATION_TYPE_SON_IN_LAW -> "दामाद"
         GENDER_TYPE_MALE -> "पुरुष"
         GENDER_TYPE_FEMALE -> "महिला"
         "Full Name" -> "नाम"

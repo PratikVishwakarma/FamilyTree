@@ -7,6 +7,7 @@ import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
 import com.pratik.learning.familyTree.data.local.dto.FullFamilyTree
+import com.pratik.learning.familyTree.data.local.dto.MemberRelationAR
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import kotlinx.coroutines.flow.Flow
 
@@ -59,4 +60,7 @@ interface FamilyTreeRepository {
 
     suspend fun isNoDataAndNoInternet(): Boolean
 
+    suspend fun getMemberRelatives(memberId: Int): MemberRelationAR
+
+    suspend fun getMembersBetweenRelations(member1Relatives: MemberRelationAR, member2Relatives: MemberRelationAR): Pair<String, String>
 }

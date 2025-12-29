@@ -33,8 +33,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -61,15 +64,30 @@ import com.pratik.learning.familyTree.utils.getCombineNameWithLivingStatus
 import com.pratik.learning.familyTree.utils.getCombinedName
 import com.pratik.learning.familyTree.utils.logger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 @Composable
 fun DualFamilyTreeView(
     tree: DualAncestorTree,
     descendantNode: DescendantNode?,
+    onFinalSize: ((Int, Int) -> Unit)?,
     onMemberClick: (Int) -> Unit
 ) {
     val scrollState = rememberScrollState()
+    var contentWidth by remember { mutableStateOf(0) }
+    var contentHeight by remember { mutableStateOf(0) }
+
+    // 🔹 Debounce key to trigger only after layout stabilizes
+    var lastUpdatedTimestamp by remember { mutableStateOf(0L) }
+
+    // 🔹 Effect to notify final size only once after 2s of no change
+    LaunchedEffect(lastUpdatedTimestamp) {
+        if (lastUpdatedTimestamp != 0L) {
+            delay(1500) // Wait 1.5s after last update
+            onFinalSize?.invoke(contentWidth, contentHeight)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -78,7 +96,12 @@ fun DualFamilyTreeView(
             .horizontalScroll(scrollState)
             .padding(16.dp)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier .onGloballyPositioned { coordinates ->
+            // capture the content size once measured
+            contentWidth = coordinates.size.width
+            contentHeight = coordinates.size.height
+            lastUpdatedTimestamp = System.currentTimeMillis()
+        }) {
             // 🌳 Title
             Text(
                 text = "🌳 परिवार वंश वृक्ष",

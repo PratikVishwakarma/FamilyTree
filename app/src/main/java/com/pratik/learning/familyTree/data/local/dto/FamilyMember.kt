@@ -88,14 +88,18 @@ data class DescendantNode(
 )
 
 
-data class MemberRelations(
-    val parents: List<Pair<String, FamilyMember>> = emptyList(),
-    val spouse: Pair<String, FamilyMember>? = null,
-    val inLaws: List<Pair<String, FamilyMember>> = emptyList(),
-    val siblings: List<Pair<String, FamilyMember>> = emptyList(),
-    val children: List<Pair<String, ChildWithSpouseDto>> = emptyList(),
-    val grandchildren: List<Pair<String, FamilyMember>> = emptyList(),
-    val grandParentsFather: List<Pair<String, FamilyMember>> = emptyList(),
-    val grandParentsMother: List<Pair<String, FamilyMember>> = emptyList(),
+
+data class MemberRelationAR(
+    var member: FamilyMember? = null,
+    val parents: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
+    var spouse: Pair<String, FamilyMember>? = null,
+    val inLaws: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
+    val siblings: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
+    val children: ArrayList<Pair<String, ChildWithSpouseDto>> = arrayListOf(),
+    val grandchildren: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
+    val grandParentsFather: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
+    val grandParentsMother: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
 )
+
+
 

@@ -2,17 +2,23 @@ package com.pratik.learning.familyTree.presentation.component
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,13 +36,16 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -45,10 +54,12 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -57,17 +68,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pratik.learning.familyTree.R
@@ -81,6 +97,7 @@ import com.pratik.learning.familyTree.utils.formatIsoDate
 import com.pratik.learning.familyTree.utils.getIcon
 import com.pratik.learning.familyTree.utils.getSpouseRelation
 import com.pratik.learning.familyTree.utils.inHindi
+import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -118,6 +135,7 @@ fun Container(
         }
     }
 }
+
 @Composable
 fun TopicTile(
     title: String,
@@ -126,7 +144,7 @@ fun TopicTile(
     onLongPress: () -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
-    val scope =     rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
     // Smooth pop animation
     val scale by animateFloatAsState(
@@ -177,7 +195,6 @@ fun TopicTile(
         }
     }
 }
-
 
 
 @Composable
@@ -238,6 +255,42 @@ fun MemberInfoSection(member: MemberFormState) {
             textStyle, iconModifier
         )
     }
+}
+
+
+@Composable
+fun MemberInfoSectionSmall(member: MemberFormState, alignment: Alignment = Alignment.CenterEnd, relation: String = "") {
+    val iconModifier = Modifier
+        .size(18.dp)
+        .padding(end = 6.dp)
+    val textStyle =
+        MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+    Box(modifier =  Modifier
+        .fillMaxWidth()
+        .padding(12.dp),
+        contentAlignment = alignment
+    ){
+        Column(
+            modifier = Modifier
+                .wrapContentWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
+                .padding(16.dp)
+        ) {
+            Text(
+                text = member.fullName,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = relation,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            InfoRow("🌳", "${"Gotra".inHindi()}: ${member.gotra}", textStyle, iconModifier)
+        }
+    }
+
 }
 
 
@@ -349,7 +402,13 @@ fun RelationGroup(
         )
         Spacer(modifier = Modifier.height(4.dp))
         members.sortedBy { it.second.dob }.forEachIndexed { index, member ->
-            RelationItem(relation = member.first, memberName = member.second.fullName, city = member.second.city, memberId = member.second.memberId, onMemberClick)
+            RelationItem(
+                relation = member.first,
+                memberName = member.second.fullName,
+                city = member.second.city,
+                memberId = member.second.memberId,
+                onMemberClick
+            )
             if (index < members.lastIndex)
                 HorizontalDivider(
                     modifier = Modifier.padding(start = 32.dp),
@@ -383,10 +442,22 @@ fun RelationGroupWithSpouse(
         )
         Spacer(modifier = Modifier.height(4.dp))
         members.sortedBy { it.second.child.dob }.forEachIndexed { index, member ->
-            RelationItem(relation = member.first, memberName = member.second.child.fullName, city = member.second.child.city, memberId = member.second.child.memberId, onMemberClick)
+            RelationItem(
+                relation = member.first,
+                memberName = member.second.child.fullName,
+                city = member.second.child.city,
+                memberId = member.second.child.memberId,
+                onMemberClick
+            )
             member.second.spouseId?.let { spouseId ->
                 Spacer(modifier = Modifier.height(4.dp))
-                RelationItem(relation = member.first.getSpouseRelation(), memberName = member.second.spouseFullName?:"", city = member.second.child.city, memberId = spouseId, onMemberClick)
+                RelationItem(
+                    relation = member.first.getSpouseRelation(),
+                    memberName = member.second.spouseFullName ?: "",
+                    city = member.second.child.city,
+                    memberId = spouseId,
+                    onMemberClick
+                )
             }
             if (index < members.lastIndex)
                 HorizontalDivider(
@@ -400,7 +471,13 @@ fun RelationGroupWithSpouse(
 
 
 @Composable
-fun RelationItem(relation: String, memberName: String, city: String, memberId: Int, onClick: (Int) -> Unit) {
+fun RelationItem(
+    relation: String,
+    memberName: String,
+    city: String,
+    memberId: Int,
+    onClick: (Int) -> Unit
+) {
     val icon = getIcon(relation)
 
     Row(
@@ -616,7 +693,15 @@ fun MemberSearchPicker(
 ) {
     val query by viewModel.query.collectAsState()
     val pagingItems = viewModel.filterResult.collectAsLazyPagingItems()
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
+    LaunchedEffect(Unit) {
+        // wait for first frame
+        awaitFrame()
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
     // Background overlay (semi-transparent)
     Box(
         modifier = Modifier
@@ -656,7 +741,9 @@ fun MemberSearchPicker(
                     onValueChange = { viewModel.onQueryChanged(it) },
                     label = { Text("Search by name") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
+                        .focusRequester(focusRequester)
+                        .focusable(true),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -689,8 +776,11 @@ fun MemberSearchPicker(
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                val relatedName = if(!member.husbandFullName.isNullOrEmpty()) "पति - श्री ${member.husbandFullName}" else if(!member.fatherFullName.isNullOrEmpty()) "पिता - श्री ${member.fatherFullName}" else ""
+                                val description =
+                                    if (relatedName.isNotEmpty()) "$relatedName - ${member.city}" else member.city
                                 Text(
-                                    text = "${"Father".inHindi()} - ${member.fatherFullName ?: ""}",
+                                    text = description,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -750,6 +840,128 @@ fun MemberSearchPicker(
     }
 }
 
+@Composable
+fun CommonRelativesItem(
+    memberName: String,
+    firstRelation: String,
+    secondRelation: String,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(6.dp),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Column {
+                Text(
+                    text = "${getIcon(firstRelation)} ${firstRelation.inHindi()}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Text(
+                    text = memberName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = "${getIcon(secondRelation)} ${secondRelation.inHindi()}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CompareDivider(relatives: Map<FamilyMember, Pair<String, String>>) {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            relatives.entries.forEachIndexed { index, it ->
+                key(it.key) {
+                    var visible by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(Unit) {
+                        delay(index * 200L)
+                        visible = true
+                    }
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = scaleIn(
+                            initialScale = 0.2f,
+                            animationSpec = tween(
+                                durationMillis = 500,
+                                easing = FastOutSlowInEasing
+                            )
+                        ) + fadeIn(animationSpec = tween(180)),
+                        exit = ExitTransition.None
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Absolute.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${getIcon(it.value.first)} ${it.value.first.inHindi()}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .wrapContentHeight()
+                                    .padding(12.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surface,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .border(BorderStroke(1.dp, color = Color.LightGray), shape = RoundedCornerShape(8.dp))
+                                    .clickable(enabled = false) {},
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    text = it.key.fullName,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                            }
+                            Text(
+                                text = "${it.value.second.inHindi()} ${getIcon(it.value.second)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                  Spacer(Modifier.height(8.dp))
+                }
+            }
+        }
+    }
+}
+
+
+@Preview(showBackground = false)
+@Composable
+fun Pre() {
+    CommonRelativesItem("Pratik", "Father", "Mother")
+}
 
 
 

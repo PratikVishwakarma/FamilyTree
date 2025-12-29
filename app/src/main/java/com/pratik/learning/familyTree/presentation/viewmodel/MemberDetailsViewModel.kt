@@ -17,27 +17,16 @@ import com.pratik.learning.familyTree.data.local.dto.DescendantNode
 import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
-import com.pratik.learning.familyTree.data.local.dto.MemberRelations
+import com.pratik.learning.familyTree.data.local.dto.MemberRelationAR
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
 import com.pratik.learning.familyTree.presentation.UIState
-import com.pratik.learning.familyTree.utils.GENDER_TYPE_FEMALE
 import com.pratik.learning.familyTree.utils.GENDER_TYPE_MALE
 import com.pratik.learning.familyTree.utils.MemberFormState
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_BROTHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_CHILD
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_DAUGHTER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_FATHER
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_FATHER_IN_LAW
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDFATHER_F
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDFATHER_M
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDMOTHER_F
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDMOTHER_M
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_HUSBAND
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER_IN_LAW
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_SISTER
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_SON
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_WIFE
 import com.pratik.learning.familyTree.utils.RelationFormState
 import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
@@ -48,11 +37,9 @@ import com.pratik.learning.familyTree.utils.validateMemberData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -63,6 +50,7 @@ class MemberDetailsViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     var memberId = -1
+    var secondMemberId = -1
 
     private val _uiState = MutableStateFlow<UIState>(UIState.IdealUIState)
     var uiState: StateFlow<UIState> = _uiState
@@ -74,12 +62,13 @@ class MemberDetailsViewModel @Inject constructor(
     var descendantTree: StateFlow<DescendantNode?> = _descendantTree
 
     private var currentMember: FamilyMember? = null
+    private var comparedMember: FamilyMember? = null
 
     private val _member = MutableStateFlow(MemberFormState())
     var member: StateFlow<MemberFormState> = _member
 
-    private val _relations = MutableStateFlow(MemberRelations())
-    var relations: StateFlow<MemberRelations> = _relations
+    private val _relatives = MutableStateFlow(MemberRelationAR())
+    var relatives: StateFlow<MemberRelationAR> = _relatives
 
     private val _relationList = MutableStateFlow(ArrayList<String>())
     var relationList: StateFlow<ArrayList<String>> = _relationList
@@ -87,7 +76,23 @@ class MemberDetailsViewModel @Inject constructor(
     private val _error = MutableStateFlow("")
     var error: StateFlow<String> = _error
 
+
+    private val _secondMember = MutableStateFlow(MemberFormState())
+    var secondMember: StateFlow<MemberFormState> = _secondMember
+
+    private val _secondMemberRelatives = MutableStateFlow(MemberRelationAR())
+    var secondMemberRelatives: StateFlow<MemberRelationAR> = _secondMemberRelatives
+
+    private val _commonRelatives: MutableStateFlow<Map<FamilyMember, Pair<String, String>>?> = MutableStateFlow(null)
+    var commonRelatives: StateFlow<Map<FamilyMember, Pair<String, String>>?> = _commonRelatives
+
+    private val _membersBetweenRelations: MutableStateFlow<Pair<String, String>> = MutableStateFlow(Pair("", ""))
+    var membersBetweenRelations: StateFlow<Pair<String, String>> = _membersBetweenRelations
+
+
+
     fun fetchDetails() {
+        logger("fetchDetails:: called")
         fetchMemberDetails()
         fetchMemberRelations()
     }
@@ -96,6 +101,16 @@ class MemberDetailsViewModel @Inject constructor(
         getFamilyHistory(memberId)
     }
 
+
+    /**
+     * resetting the related values for existing second member before going for compression
+     * */
+    fun resetSecondMemberDetails() {
+        secondMemberId = -1
+        _secondMemberRelatives.value = MemberRelationAR()
+        _secondMember.value = MemberFormState()
+        _commonRelatives.value = null
+    }
 
     private fun getFamilyHistory(memberId: Int) {
         println("getFamilyHistory for member: $memberId")
@@ -107,243 +122,86 @@ class MemberDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun fetchMemberDetails() {
+    fun fetchMemberDetails(isFirstMember: Boolean = true) {
+        val memberId = if (isFirstMember) this.memberId else secondMemberId
+        logger("fetchMemberDetails:: isFirstMember = $isFirstMember  memberId = $memberId")
         viewModelScope.launch(Dispatchers.IO) {
-            currentMember = familyTreeRepository.getMemberById(memberId)
-            if (currentMember != null) {
-                logger("Member Details: $currentMember")
-                _member.value = MemberFormState(
-                    fullName = currentMember!!.fullName,
-                    gotra = currentMember!!.gotra,
-                    dob = currentMember!!.dob,
-                    gender = currentMember!!.gender,
-                    isLiving = currentMember!!.isLiving,
-                    dod = currentMember!!.dod,
-                    city = currentMember!!.city,
-                    state = currentMember!!.state,
-                    mobile = currentMember!!.mobile
+            val mMember = familyTreeRepository.getMemberById(memberId)
+            mMember?.let {
+                logger("Member Details: $it")
+                val mMemberFormState = MemberFormState(
+                    fullName = it.fullName,
+                    gotra = it.gotra,
+                    dob = it.dob,
+                    gender = it.gender,
+                    isLiving = it.isLiving,
+                    dod = it.dod,
+                    city = it.city,
+                    state = it.state,
+                    mobile = it.mobile
                 )
+                if (isFirstMember) {
+                    _member.value = mMemberFormState
+                    currentMember = it
+                    logger("pratik:: -2 = member ${_relatives.value.member}  || $it")
+                } else {
+                    _secondMember.value = mMemberFormState
+                    comparedMember = it
+                    logger("pratik:: -1 = member ${_secondMemberRelatives.value.member}  || $it")
+                    fetchMemberRelations(isFirstMember = false)
+                }
             }
         }
     }
 
-    private fun fetchMemberRelations() {
-        _relations.value = MemberRelations()
+    private fun fetchMemberRelations(isFirstMember: Boolean = true) {
+        val memberId = if (isFirstMember) memberId else secondMemberId
+        logger("fetchMemberRelations:: isFirstMember = $isFirstMember  memberId = $memberId")
+
         viewModelScope.launch(Dispatchers.IO) {
-            familyTreeRepository.getRelationsForMember(memberId).onEach { relations ->
-                getRelations(relations)
-            }.launchIn(viewModelScope)
-        }
-    }
-
-
-    /**
-     * helper function to label the actual relations of the member
-     * */
-    private suspend fun getRelations(relations: List<FamilyRelation>) {
-        relations.forEach { relation ->
-            val memberDetails = familyTreeRepository.getMemberById(relation.relatedMemberId)
-            logger("getRelations for relation: $relation")
-            memberDetails?.let {
-                when (relation.relationType) {
-                    RELATION_TYPE_FATHER -> {
-                        _relations.update { current ->
-                            current.copy(
-                                parents = (current.parents + Pair(
-                                    RELATION_TYPE_FATHER,
-                                    it
-                                )).distinct()
-                            )
-                        }
-                        fetchGrandParents(it, isParental = true)
-                    }
-
-                    RELATION_TYPE_MOTHER -> {
-                        _relations.update { current ->
-                            current.copy(
-                                parents = (current.parents + Pair(
-                                    RELATION_TYPE_MOTHER,
-                                    it
-                                )).distinct()
-                            )
-                        }
-                        fetchGrandParents(it, isParental = false)
-                    }
-
-                    RELATION_TYPE_WIFE -> {
-                        _relations.update { current ->
-                            current.copy(
-                                spouse = Pair(
-                                    RELATION_TYPE_WIFE,
-                                    it
-                                )
-                            )
-                        }
-                    }
-
-                    RELATION_TYPE_HUSBAND -> {
-                        _relations.update { current ->
-                            current.copy(
-                                spouse = Pair(
-                                    RELATION_TYPE_HUSBAND,
-                                    it
-                                )
-                            )
-                        }
-                    }
-                }
+            if (isFirstMember) {
+                _relatives.value = familyTreeRepository.getMemberRelatives(memberId = memberId)
+            } else {
+                _secondMemberRelatives.value =
+                    familyTreeRepository.getMemberRelatives(memberId = memberId)
             }
-        }
-        _relations.value.spouse?.let { spouse ->
-            fetchInLawsDetails(spouse.second)
-            fetchChildren()
-        }
-        fetchSiblings()
-    }
-
-    /**
-     * this will fetch the member's In-Laws details
-     * */
-    private suspend fun fetchInLawsDetails(spouse: FamilyMember) {
-        logger("fetchInLawsDetails for spouse: $spouse")
-        val parentsWithMemberId = familyTreeRepository.getParentsWithMemberId(spouse.memberId)
-        logger("parentsWithMemberId: $parentsWithMemberId")
-        parentsWithMemberId.forEach { parent ->
-            when (parent.first) {
-                RELATION_TYPE_FATHER -> _relations.update { current ->
-                    current.copy(
-                        inLaws = (current.inLaws + Pair(
-                            RELATION_TYPE_FATHER_IN_LAW,
-                            parent.second
-                        )).distinct()
-                    )
-                }
-
-                RELATION_TYPE_MOTHER -> _relations.update { current ->
-                    current.copy(
-                        inLaws = (current.inLaws + Pair(
-                            RELATION_TYPE_MOTHER_IN_LAW,
-                            parent.second
-                        )).distinct()
-                    )
-                }
-            }
-        }
-    }
-
-    private suspend fun fetchGrandParents(member: FamilyMember, isParental: Boolean = true) {
-        logger("fetchGrandParents for isParental: $isParental  member: $member")
-        val parentsWithMemberId = familyTreeRepository.getParentsWithMemberId(member.memberId)
-        logger("fetchGrandParents: $parentsWithMemberId")
-        parentsWithMemberId.forEach { parent ->
-            when (parent.first) {
-                RELATION_TYPE_FATHER -> _relations.update { current ->
-                    if (isParental) {
-                        current.copy(
-                            grandParentsFather = (current.grandParentsFather + Pair(
-                                RELATION_TYPE_GRANDFATHER_F,
-                                parent.second
-                            )).distinct()
-                        )
-                    } else {
-                        current.copy(
-                            grandParentsMother = (current.grandParentsMother + Pair(
-                                RELATION_TYPE_GRANDFATHER_M,
-                                parent.second
-                            )).distinct()
-                        )
-                    }
-                }
-
-                RELATION_TYPE_MOTHER -> _relations.update { current ->
-                    if (isParental) {
-                        current.copy(
-                            grandParentsFather = (current.grandParentsFather + Pair(
-                                RELATION_TYPE_GRANDMOTHER_F,
-                                parent.second
-                            )).distinct()
-                        )
-                    } else {
-                        current.copy(
-                            grandParentsMother = (current.grandParentsMother + Pair(
-                                RELATION_TYPE_GRANDMOTHER_M,
-                                parent.second
-                            )).distinct()
-                        )
-                    }
-                }
+            delay(1000)
+            logger("fetchMemberRelations:: isFirstMember = $isFirstMember  memberId = $memberId _relatives.value = ${_relatives.value}")
+            if (!isFirstMember) {
+                _commonRelatives.value = getCommonRelatives()
+                _membersBetweenRelations.value = familyTreeRepository.getMembersBetweenRelations(
+                    _relatives.value,
+                    _secondMemberRelatives.value
+                )
+                logger("fetchMemberRelations:: firstMember = ${_relatives.value.member} || secondMember = ${_secondMemberRelatives.value.member} ")
+                logger("fetchMemberRelations:: getMembersBetweenRelations = $membersBetweenRelations  memberId = $memberId")
             }
         }
     }
 
 
-    private suspend fun fetchSiblings() {
-        logger(
-            "fetchSiblings for member: ${member.value}"
-        )
-        relations.value.parents.forEach {
-            logger("FetchSiblings: for member: $it")
-            val siblings = familyTreeRepository.getChildren(it.second.memberId)
-            logger("siblings: $siblings")
-            siblings.forEach { sibling ->
-                if (sibling.memberId != memberId) {
-                    logger("sibling: $sibling")
-                    when (sibling.gender) {
-                        GENDER_TYPE_MALE -> _relations.update { current ->
-                            current.copy(
-                                siblings = (current.siblings + Pair(
-                                    RELATION_TYPE_BROTHER,
-                                    sibling
-                                )).distinct()
-                            )
-                        }
+    fun getCommonRelatives(): Map<FamilyMember, Pair<String, String>> {
+        logger("getCommonRelatives")
+        val firstMemberRelatives = getAllRelatedMember()
+        val secondMemberRelatives = getAllRelatedMember(isFirstMember = false)
 
-                        GENDER_TYPE_FEMALE -> _relations.update { current ->
-                            current.copy(
-                                siblings = (current.siblings + Pair(
-                                    RELATION_TYPE_SISTER,
-                                    sibling
-                                )).distinct()
-                            )
-                        }
-                    }
-                }
-            }
+        val firstMemberIds = firstMemberRelatives.keys
+        val secondMemberIds = secondMemberRelatives.keys
+        val intersect = firstMemberIds.intersect(secondMemberIds)
+        logger("getCommonRelatives intersect: $intersect")
+
+        val commonMembers = mutableMapOf<FamilyMember, Pair<String, String>>()
+
+        intersect.forEach {
+            val firstMember = firstMemberRelatives[it]
+            val secondMember = secondMemberRelatives[it]
+            commonMembers[firstMember?.second ?: secondMember!!.second] = Pair(firstMember?.first ?:"", secondMember?.first ?:"")
         }
+        logger("getCommonRelatives commonMembers: $commonMembers")
+        return commonMembers
+
     }
 
-    private suspend fun fetchChildren() {
-        logger(
-            "fetchChildren for member: ${member.value}"
-        )
-        logger("fetchChildren: for member: $memberId")
-        val children = familyTreeRepository.getChildrenWithSpouse(memberId)
-        logger("total children: $children")
-        children.forEach { child ->
-            if (child.child.memberId != memberId) {
-                logger("child: $child")
-                when (child.child.gender) {
-                    GENDER_TYPE_MALE -> _relations.update { current ->
-                        current.copy(
-                            children = (current.children + Pair(
-                                RELATION_TYPE_SON,
-                                child
-                            )).distinct()
-                        )
-                    }
-
-                    GENDER_TYPE_FEMALE -> _relations.update { current ->
-                        current.copy(
-                            children = (current.children + Pair(
-                                RELATION_TYPE_DAUGHTER,
-                                child
-                            )).distinct()
-                        )
-                    }
-                }
-            }
-        }
-    }
 
 
     fun onMobileChanged(newValue: String) {
@@ -428,7 +286,7 @@ class MemberDetailsViewModel @Inject constructor(
 
             if (currentMember?.gotra != member.value.gotra && currentMember?.gender == GENDER_TYPE_MALE) {
                 // gotra of the male user has been changes so need to update the spouse and descendants gotra as well
-                familyTreeRepository.updateMember(familyMember, true, relations.value.spouse?.second?.memberId ?: -1)
+                familyTreeRepository.updateMember(familyMember, true, relatives.value.spouse?.second?.memberId ?: -1)
             } else
                 familyTreeRepository.updateMember(familyMember)
             withContext(Dispatchers.Main) {
@@ -565,7 +423,7 @@ class MemberDetailsViewModel @Inject constructor(
 
     fun getAllRelatedMemberIds(): List<Int> {
         val ids = mutableSetOf<Int>() // use a set to avoid duplicates
-        val mRelations = relations.value
+        val mRelations = relatives.value
         // Add parents
         mRelations.parents.forEach { (_, member) -> ids.add(member.memberId) }
 
@@ -595,6 +453,51 @@ class MemberDetailsViewModel @Inject constructor(
         ids.add(memberId)
 
         return ids.toList()
+    }
+
+
+    fun getAllRelatedMember(isFirstMember: Boolean = true): Map<Int, Pair<String, FamilyMember>> {
+        val members = mutableMapOf<Int, Pair<String, FamilyMember>>()
+        val mRelations = if (isFirstMember) relatives.value else secondMemberRelatives.value
+        logger("getAllRelatedMember: $mRelations")
+
+        // Add parents
+        mRelations.parents.forEach {
+            members[it.second.memberId] = Pair(it.first, it.second)
+        }
+        // Add spouse
+        mRelations.spouse?.let {
+            members[it.second.memberId] = Pair(it.first, it.second)
+        }
+        // Add in-laws
+        mRelations.inLaws.forEach {
+            members[it.second.memberId] = Pair(it.first, it.second)
+        }
+        // Add siblings
+        mRelations.siblings.forEach {
+            members[it.second.memberId] = Pair(it.first, it.second)
+        }
+        // Add children
+        mRelations.children.forEach {
+            members[it.second.child.memberId] = Pair(it.first, it.second.child)
+        }
+
+        // Add grandchildren
+        mRelations.grandchildren.forEach {
+            members[it.second.memberId] = Pair(it.first, it.second)
+        }
+
+        // Add grandparents (father side)
+        mRelations.grandParentsFather.forEach {
+            members[it.second.memberId] = Pair(it.first, it.second)
+        }
+
+        // Add grandparents (mother side)
+        mRelations.grandParentsMother.forEach {
+            members[it.second.memberId] = Pair(it.first, it.second)
+        }
+
+        return members
     }
 
     fun dismissConfirmationPopup() {

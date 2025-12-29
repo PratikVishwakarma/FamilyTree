@@ -16,14 +16,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.navigation.AddRelationRoute
 import com.pratik.learning.familyTree.navigation.AncestryRoute
 import com.pratik.learning.familyTree.navigation.EditMemberRoute
 import com.pratik.learning.familyTree.navigation.MemberDetailsRoute
+import com.pratik.learning.familyTree.navigation.MembersCompareRoute
 import com.pratik.learning.familyTree.presentation.UIState
 import com.pratik.learning.familyTree.presentation.component.ConfirmationPopup
 import com.pratik.learning.familyTree.presentation.component.Container
@@ -44,12 +45,12 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
         }
     }
     LaunchedEffect(Unit) {
-        logger("LaunchedEffect")
+        logger("MemberDetailsScreen LaunchedEffect")
         viewModel.fetchDetails()
     }
     val uiState = viewModel.uiState.collectAsState().value
-    val member = viewModel.member.collectAsState().value
-    val relations = viewModel.relations.collectAsState().value
+    val member by viewModel.member.collectAsState()
+    val relatives by viewModel.relatives.collectAsState()
     val dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
     Container(
         title = "Member Details".inHindi(),
@@ -104,17 +105,17 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
 
             // Relations
             item {
-                RelationGroup("Parents ", relations.parents, onMemberClick)
+                RelationGroup("Parents ", relatives.parents, onMemberClick)
                 RelationGroup(
                     "Spouse",
-                    relations.spouse?.let { listOf(it) } ?: emptyList(),
+                    relatives.spouse?.let { listOf(it) } ?: emptyList(),
                     onMemberClick)
-                RelationGroup("In-Laws", relations.inLaws, onMemberClick)
-                RelationGroup("Siblings", relations.siblings, onMemberClick)
-                RelationGroupWithSpouse("Children", relations.children, onMemberClick)
-                RelationGroup("Grandchildren", relations.grandchildren, onMemberClick)
-                RelationGroup("Grandparents ", relations.grandParentsFather, onMemberClick)
-                RelationGroup("Grandparents ", relations.grandParentsMother, onMemberClick)
+                RelationGroup("In-Laws", relatives.inLaws.distinct(), onMemberClick)
+                RelationGroup("Siblings", relatives.siblings.distinct(), onMemberClick)
+                RelationGroupWithSpouse("Children", relatives.children.distinct(), onMemberClick)
+                RelationGroup("Grandchildren", relatives.grandchildren.distinct(), onMemberClick)
+                RelationGroup("Grandparents ", relatives.grandParentsFather.distinct(), onMemberClick)
+                RelationGroup("Grandparents ", relatives.grandParentsMother.distinct(), onMemberClick)
             }
             item {
                 Spacer(Modifier.height(16.dp))
@@ -127,6 +128,18 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
                         .height(50.dp)
                 ) {
                     Text("See Ancestry".inHindi())
+                }
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        viewModel.resetSecondMemberDetails()
+                        navController.navigate(route = MembersCompareRoute(viewModel.memberId))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                ) {
+                    Text("Compare Members".inHindi())
                 }
                 // Admin options
                 Spacer(Modifier.height(16.dp))

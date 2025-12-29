@@ -18,28 +18,52 @@ import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
 import com.pratik.learning.familyTree.data.local.dto.FullFamilyTree
+import com.pratik.learning.familyTree.data.local.dto.MemberRelationAR
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import com.pratik.learning.familyTree.utils.DATA_BACKUP_FILE_NAME
 import com.pratik.learning.familyTree.utils.DATA_BACKUP_FILE_PATH
+import com.pratik.learning.familyTree.utils.GENDER_TYPE_FEMALE
 import com.pratik.learning.familyTree.utils.GENDER_TYPE_MALE
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_BROTHER
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_DAUGHTER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_FATHER
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_FATHER_IN_LAW
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDCHILD
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDCHILD_F
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDFATHER_F
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDFATHER_M
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDMOTHER_F
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDMOTHER_M
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_GREAT_GRANDCHILD
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_GREAT_GREAT_GRANDCHILD
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_GREAT____GRANDCHILD
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_HUSBAND
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER_IN_LAW
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_SISTER
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_SON
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_WIFE
 import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
 import com.pratik.learning.familyTree.utils.SyncPrefs.setLastSyncTime
 import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.logger
+import com.pratik.learning.familyTree.utils.relationTextInHindi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.collections.distinct
+import kotlin.collections.plus
 
 class FamilyTreeRepositoryImpl(
     private val dao: FamilyTreeDao,
@@ -415,4 +439,205 @@ class FamilyTreeRepositoryImpl(
 
         return memberCount == 0 && !hasInternet
     }
+
+    override suspend fun getMemberRelatives(memberId: Int): MemberRelationAR {
+        logger("getMemberRelatives:: memberId = $memberId")
+        val relatives = MemberRelationAR()
+        val relations = dao.getRelationsForMember(memberId).first()
+        getRelations(memberId = memberId, relations = relations, relatives = relatives)
+        relatives.member = getMemberById(memberId)
+        logger("getMemberRelatives:: member 2 = ${relatives.member}")
+        return relatives
+    }
+
+    override suspend fun getMembersBetweenRelations(
+        member1Relatives: MemberRelationAR,
+        member2Relatives: MemberRelationAR
+    ): Pair<String, String> {
+        logger("getMembersBetweenRelations:: member1Relatives = ${member1Relatives.member}, member2Relatives = ${member2Relatives.member}")
+        var member1RelationToMember2 = ""
+        var member2RelationToMember1 = ""
+        if (member1Relatives.member == null || member2Relatives.member == null)
+            return Pair(member1RelationToMember2, member2RelationToMember1)
+        // Sibling relations
+        val siblings =
+            member1Relatives.siblings.filter{ it.second.memberId == member2Relatives.member?.memberId }
+        if (siblings.isNotEmpty()) {
+            member1RelationToMember2 = if (member1Relatives.member?.gender == GENDER_TYPE_MALE) RELATION_TYPE_BROTHER else RELATION_TYPE_SISTER
+            member2RelationToMember1 = siblings[0].first
+            return Pair(member1RelationToMember2.relationTextInHindi(), member2RelationToMember1.relationTextInHindi())
+        }
+
+        // Parent - child relation
+        val children =
+            member1Relatives.children.filter{ it.second.child.memberId == member2Relatives.member?.memberId }
+        if (children.isNotEmpty()) {
+            member1RelationToMember2 = if (member1Relatives.member?.gender == GENDER_TYPE_MALE) RELATION_TYPE_FATHER else RELATION_TYPE_MOTHER
+            member2RelationToMember1 = children[0].first
+            return Pair(member1RelationToMember2.relationTextInHindi(), member2RelationToMember1.relationTextInHindi())
+        }
+
+        // Child - Parent relation
+        val parent = member1Relatives.parents.filter { it.second.memberId == member2Relatives.member?.memberId }
+        if (parent.isNotEmpty()) {
+            member1RelationToMember2 = if (member1Relatives.member?.gender == GENDER_TYPE_MALE) RELATION_TYPE_SON else RELATION_TYPE_DAUGHTER
+            member2RelationToMember1 = parent[0].first
+            return Pair(member1RelationToMember2.relationTextInHindi(), member2RelationToMember1.relationTextInHindi())
+        }
+
+        // Grand Child - Parent relation
+        val grandParents = (member1Relatives.grandParentsFather + member1Relatives.grandParentsMother).filter { it.second.memberId == member2Relatives.member?.memberId  }
+        if (grandParents.isNotEmpty()) {
+            member1RelationToMember2 = if (member1Relatives.member?.gender == GENDER_TYPE_MALE) RELATION_TYPE_GRANDCHILD else RELATION_TYPE_GRANDCHILD_F
+            member2RelationToMember1 = grandParents[0].first
+            logger("getMembersBetweenRelations:: grandParents = $grandParents")
+            return Pair(member1RelationToMember2.relationTextInHindi(), member2RelationToMember1.relationTextInHindi())
+        }
+
+        // member1 is grand parent of member2
+        val grandChildren =  (member2Relatives.grandParentsFather + member2Relatives.grandParentsMother).filter { it.second.memberId == member1Relatives.member?.memberId  }
+        if (grandChildren.isNotEmpty()) {
+            member2RelationToMember1 = if (member2Relatives.member?.gender == GENDER_TYPE_MALE) RELATION_TYPE_GRANDCHILD else RELATION_TYPE_GRANDCHILD_F
+            member1RelationToMember2 = grandChildren[0].first
+            logger("getMembersBetweenRelations:: grandChildren = $grandChildren")
+            return Pair(member1RelationToMember2.relationTextInHindi(), member2RelationToMember1.relationTextInHindi())
+        }
+
+
+        return Pair(member1RelationToMember2, member2RelationToMember1)
+
+
+    }
+
+
+    /**
+     * helper function to label the actual relations of the member
+     * */
+    private suspend fun getRelations(memberId: Int, relations: List<FamilyRelation>, relatives: MemberRelationAR) {
+        logger("getRelations called for memberId: $memberId")
+        relations.forEach { relation ->
+            val memberDetails = getMemberById(relation.relatedMemberId)
+            memberDetails?.let {
+                when (relation.relationType) {
+                    RELATION_TYPE_FATHER -> {
+                        relatives.parents.add(Pair(RELATION_TYPE_FATHER, it))
+                        fetchGrandParents(it, isParental = true, relatives = relatives)
+                    }
+
+                    RELATION_TYPE_MOTHER -> {
+                        relatives.parents.add(Pair(RELATION_TYPE_MOTHER, it))
+                        fetchGrandParents(it, isParental = false, relatives = relatives)
+                    }
+
+                    RELATION_TYPE_WIFE -> {
+                        relatives.spouse = Pair(RELATION_TYPE_WIFE, it)
+                    }
+
+                    RELATION_TYPE_HUSBAND -> {
+                        relatives.spouse = Pair(RELATION_TYPE_HUSBAND, it)
+                    }
+                }
+            }
+        }
+        relatives.spouse?.let {
+            fetchInLawsDetails(it.second, relatives)
+            fetchChildren(memberId, relatives)
+        }
+        fetchSiblings(memberId, relatives)
+    }
+
+
+    private suspend fun fetchGrandParents(
+        member: FamilyMember,
+        isParental: Boolean = true,
+        relatives: MemberRelationAR
+    ) {
+        logger("fetchGrandParents for isParental: $isParental  member: $member")
+        val parentsWithMemberId = getParentsWithMemberId(member.memberId)
+        logger("fetchGrandParents: $parentsWithMemberId")
+        parentsWithMemberId.forEach { parent ->
+            when (parent.first) {
+                RELATION_TYPE_FATHER -> {
+                    if (isParental)
+                        relatives.grandParentsFather.add(Pair(RELATION_TYPE_GRANDFATHER_F, parent.second))
+                    else
+                        relatives.grandParentsMother.add(Pair(RELATION_TYPE_GRANDFATHER_M, parent.second))
+                }
+                RELATION_TYPE_MOTHER -> {
+                    if (isParental)
+                        relatives.grandParentsFather.add(Pair(RELATION_TYPE_GRANDMOTHER_F, parent.second))
+                    else
+                        relatives.grandParentsMother.add(Pair(RELATION_TYPE_GRANDMOTHER_M, parent.second))
+                }
+            }
+        }
+    }
+
+
+    /**
+     * this will fetch the member's In-Laws details
+     * */
+    private suspend fun fetchInLawsDetails(
+        spouse: FamilyMember,
+        relatives: MemberRelationAR
+    ) {
+        logger("fetchInLawsDetails for spouse: $spouse")
+        val parentsWithMemberId = getParentsWithMemberId(spouse.memberId)
+        logger("parentsWithMemberId: $parentsWithMemberId")
+        parentsWithMemberId.forEach { parent ->
+            when (parent.first) {
+                RELATION_TYPE_FATHER -> {
+                    relatives.inLaws.add(Pair(RELATION_TYPE_FATHER_IN_LAW, parent.second))
+                }
+                RELATION_TYPE_MOTHER -> {
+                    relatives.inLaws.add(Pair(RELATION_TYPE_MOTHER_IN_LAW, parent.second))
+                }
+            }
+        }
+    }
+
+
+    private suspend fun fetchChildren(memberId: Int, relatives: MemberRelationAR) {
+        logger("fetchChildren: for member: $memberId")
+        val children = getChildrenWithSpouse(memberId)
+        logger("total children: $children")
+        children.forEach { child ->
+            if (child.child.memberId != memberId) {
+                logger("child: $child")
+                when (child.child.gender) {
+                    GENDER_TYPE_MALE -> {
+                        relatives.children.add(Pair(RELATION_TYPE_SON, child))
+                    }
+                    GENDER_TYPE_FEMALE -> {
+                        relatives.children.add(Pair(RELATION_TYPE_DAUGHTER, child))
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+    private suspend fun fetchSiblings(memberId: Int, relatives: MemberRelationAR) {
+        relatives.parents.forEach {
+            logger("FetchSiblings: for member: $it")
+            val siblings = getChildren(it.second.memberId)
+            logger("siblings: $siblings")
+            siblings.forEach { sibling ->
+                if (sibling.memberId != memberId) {
+                    logger("sibling: $sibling")
+                    when (sibling.gender) {
+                        GENDER_TYPE_MALE ->
+                            relatives.siblings.add(Pair(RELATION_TYPE_BROTHER, sibling))
+
+                        GENDER_TYPE_FEMALE ->
+                            relatives.siblings.add(Pair(RELATION_TYPE_SISTER, sibling))
+                    }
+                }
+            }
+        }
+    }
+
+
 }
