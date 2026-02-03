@@ -1,6 +1,7 @@
 package com.pratik.learning.familyTree.data.local.dto
 
 
+import androidx.annotation.Keep
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -8,6 +9,7 @@ import androidx.room.PrimaryKey
 /**
  * Defines the main table for storing family members.
  */
+@Keep
 @Entity(tableName = "members")
 data class FamilyMember(
     // Primary key, auto-generated for new members
@@ -27,7 +29,7 @@ data class FamilyMember(
     var isNewEntry: Boolean = false
 )
 
-
+@Keep
 /**
  * Data class to hold the result of the query: a member's full details
  * joined with their father's full name.
@@ -50,20 +52,20 @@ data class MemberWithFather(
     // Field from the JOIN operation (the father's name)
     val husbandFullName: String?
 )
-
+@Keep
 data class ChildWithSpouseDto(
     @Embedded val child: FamilyMember,
     val spouseId: Int?,
     val spouseFullName: String?
 )
 
-
+@Keep
 data class DualAncestorTree(
     val self: FamilyMember?,
     val spouse: FamilyMember?,
     val paternalLineRoot: AncestorNode?,
     val maternalLineRoot: AncestorNode?)
-
+@Keep
 data class AncestorNode(
     val level: Int,
     val member: FamilyMember,
@@ -71,14 +73,14 @@ data class AncestorNode(
     val parents: List<AncestorNode>,
     val relationWithMember: String = ""
 )
-
+@Keep
 data class FullFamilyTree(
     val self: FamilyMember,
     val spouse: FamilyMember? = null,
     val ancestors: DualAncestorTree? = null,
     val descendants: DescendantNode? = null
 )
-
+@Keep
 data class DescendantNode(
     val member: FamilyMember,
     val spouse: FamilyMember? = null,
@@ -88,7 +90,7 @@ data class DescendantNode(
 )
 
 
-
+@Keep
 data class MemberRelationAR(
     var member: FamilyMember? = null,
     val parents: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
@@ -102,4 +104,20 @@ data class MemberRelationAR(
 )
 
 
+@Keep
+enum class TimelineEventType {
+    BIRTH,
+    MARRIAGE,
+    SON_BIRTH,
+    DAUGHTER_BIRTH,
+    DEATH
+}
+
+@Keep
+data class TimelineEvent(
+    val type: TimelineEventType,
+    val title: String,
+    val subtitle: String,
+    val date: String
+)
 

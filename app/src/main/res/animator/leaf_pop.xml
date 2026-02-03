@@ -1,0 +1,19 @@
+<set xmlns:android="http://schemas.android.com/apk/res/android">
+    <objectAnimator
+        android:propertyName="fillAlpha"
+        android:valueFrom="0"
+        android:valueTo="1"
+        android:duration="180" />
+
+    <objectAnimator
+        android:propertyName="scaleX"
+        android:valueFrom="0.5"
+        android:valueTo="1"
+        android:duration="220" />
+
+    <objectAnimator
+        android:propertyName="scaleY"
+        android:valueFrom="0.5"
+        android:valueTo="1"
+        android:duration="220" />
+</set>

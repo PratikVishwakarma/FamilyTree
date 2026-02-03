@@ -1,5 +1,6 @@
 package com.pratik.learning.familyTree.presentation.component
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
@@ -10,6 +11,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
+import androidx.compose.animation.graphics.res.animatedVectorResource
+import androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter
+import androidx.compose.animation.graphics.vector.AnimatedImageVector
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -19,9 +24,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -38,6 +48,9 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -45,8 +58,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -54,7 +70,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -67,19 +82,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -90,6 +109,8 @@ import com.pratik.learning.familyTree.R
 import com.pratik.learning.familyTree.data.local.dto.ChildWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
+import com.pratik.learning.familyTree.data.local.dto.TimelineEvent
+import com.pratik.learning.familyTree.data.local.dto.TimelineEventType
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
 import com.pratik.learning.familyTree.utils.MemberFormState
 import com.pratik.learning.familyTree.utils.calculateAgeFromDob
@@ -97,15 +118,43 @@ import com.pratik.learning.familyTree.utils.formatIsoDate
 import com.pratik.learning.familyTree.utils.getIcon
 import com.pratik.learning.familyTree.utils.getSpouseRelation
 import com.pratik.learning.familyTree.utils.inHindi
+import com.pratik.learning.familyTree.utils.logger
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalAnimationGraphicsApi::class)
+@Composable
+fun AnimatedAppLogo() {
+    var atEnd by remember { mutableStateOf(false) }
+
+    val animatedVector = AnimatedImageVector.animatedVectorResource(
+        R.drawable.ic_family_tree_animated
+    )
+
+    Image(
+        painter = rememberAnimatedVectorPainter(animatedVector, atEnd),
+        contentDescription = "Family Tree Logo",
+        modifier = Modifier.size(220.dp)
+    )
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            atEnd = true
+            delay(1400)
+            atEnd = false
+            delay(900)
+        }
+    }
+}
 
 
 @Composable
 fun Container(
     title: String = "Family Tree",
     modifier: Modifier = Modifier,
+    paddingValues: PaddingValues = PaddingValues(horizontal = 16.dp, 8.dp),
+    isFilter: Boolean = false,
     rightButton: @Composable (() -> Unit)? = null, // Optional right button
     content: @Composable () -> Unit
 ) {
@@ -117,10 +166,7 @@ fun Container(
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.primaryContainer) // Use a background color
                     .windowInsetsPadding(WindowInsets.statusBars) // <-- THE CRITICAL MODIFIER
-                    .padding(
-                        horizontal = 16.dp,
-                        vertical = 8.dp
-                    ), // Add horizontal padding for content
+                    .padding(paddingValues), // Add horizontal padding for content
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(title, style = MaterialTheme.typography.titleLarge)
@@ -130,14 +176,20 @@ fun Container(
                 }
             }
         }) { padding ->
-        Column(Modifier.padding(padding)) {
-            content()
+        if (!isFilter)
+            Column(Modifier.padding(padding)) {
+                content()
+            }
+        else {
+            Box(Modifier.padding(padding)) {
+                content()
+            }
         }
     }
 }
 
 @Composable
-fun TopicTile(
+fun MemberSmallTile(
     title: String,
     description: String,
     onSinglePress: () -> Unit,
@@ -146,56 +198,59 @@ fun TopicTile(
     var isPressed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Smooth pop animation
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 1.1f else 1f,
+        targetValue = if (isPressed) 1.05f else 1f,
         animationSpec = spring(
-            dampingRatio = 0.4f,    // makes it bouncy
-            stiffness = 300f
+            dampingRatio = 0.3f,
+            stiffness = 350f
         ),
         label = "popScale"
     )
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .scale(scale)
-            .combinedClickable(
-                onClick = onSinglePress,
-                onLongClick = {
-                    isPressed = true
-                    onLongPress()
-
-                    // launch coroutine safely from event handler
-                    scope.launch {
-                        delay(150)
-                        isPressed = false
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .scale(scale)
+                .background(MaterialTheme.colorScheme.background)
+                .combinedClickable(
+                    onClick = onSinglePress,
+                    onLongClick = {
+                        isPressed = true
+                        scope.launch {
+                            delay(300)
+                            onLongPress()
+                            isPressed = false
+                        }
                     }
-                }
-            ),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.padding(16.dp)) {
+                )
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Column {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
+
+        Divider(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            thickness = 0.6.dp,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
     }
 }
-
 
 @Composable
 fun InfoRow(icon: String, text: String, style: TextStyle, modifier: Modifier) {
@@ -259,34 +314,48 @@ fun MemberInfoSection(member: MemberFormState) {
 
 
 @Composable
-fun MemberInfoSectionSmall(member: MemberFormState, alignment: Alignment = Alignment.CenterEnd, relation: String = "") {
+fun MemberInfoSectionSmall(
+    member: MemberFormState,
+    alignment: Alignment = Alignment.CenterEnd,
+    relation: String = ""
+) {
     val iconModifier = Modifier
         .size(18.dp)
         .padding(end = 6.dp)
     val textStyle =
         MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val roundedCornerShape = if (alignment == Alignment.CenterStart) RoundedCornerShape(
+        bottomStart = 20.dp,
+        bottomEnd = 20.dp
+    )
+    else RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
 
-    Box(modifier =  Modifier
-        .fillMaxWidth()
-        .padding(12.dp),
-        contentAlignment = alignment
-    ){
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = roundedCornerShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             modifier = Modifier
                 .wrapContentWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-                .padding(16.dp)
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = member.fullName,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal)
             )
-            Text(
-                text = relation,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
+            if (relation.isNotEmpty()) {
+                Text(
+                    text = relation,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
             InfoRow("🌳", "${"Gotra".inHindi()}: ${member.gotra}", textStyle, iconModifier)
         }
     }
@@ -356,9 +425,6 @@ fun MemberInfoOverlay(
                                 mobile = member.mobile
                             )
                         )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
                         OutlinedButton(
                             onClick = {
                                 visible = false
@@ -741,7 +807,8 @@ fun MemberSearchPicker(
                     onValueChange = { viewModel.onQueryChanged(it) },
                     label = { Text("Search by name") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .focusRequester(focusRequester)
                         .focusable(true),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -776,7 +843,8 @@ fun MemberSearchPicker(
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                                val relatedName = if(!member.husbandFullName.isNullOrEmpty()) "पति - श्री ${member.husbandFullName}" else if(!member.fatherFullName.isNullOrEmpty()) "पिता - श्री ${member.fatherFullName}" else ""
+                                val relatedName =
+                                    if (!member.husbandFullName.isNullOrEmpty()) "पति - श्री ${member.husbandFullName}" else if (!member.fatherFullName.isNullOrEmpty()) "पिता - श्री ${member.fatherFullName}" else ""
                                 val description =
                                     if (relatedName.isNotEmpty()) "$relatedName - ${member.city}" else member.city
                                 Text(
@@ -932,13 +1000,16 @@ fun CompareDivider(relatives: Map<FamilyMember, Pair<String, String>>) {
                                         MaterialTheme.colorScheme.surface,
                                         shape = RoundedCornerShape(12.dp)
                                     )
-                                    .border(BorderStroke(1.dp, color = Color.LightGray), shape = RoundedCornerShape(8.dp))
+                                    .border(
+                                        BorderStroke(1.dp, color = Color.LightGray),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
                                     .clickable(enabled = false) {},
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     modifier = Modifier.align(Alignment.Center),
-                                    text = it.key.fullName,
+                                    text = "${it.key.fullName} \n ${it.key.city}",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                                 )
                             }
@@ -949,7 +1020,7 @@ fun CompareDivider(relatives: Map<FamilyMember, Pair<String, String>>) {
                             )
                         }
                     }
-                  Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
             }
         }
@@ -957,10 +1028,502 @@ fun CompareDivider(relatives: Map<FamilyMember, Pair<String, String>>) {
 }
 
 
+@Composable
+fun ThemedMiniSwitch(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val trackColor = if (checked)
+        MaterialTheme.colorScheme.primary
+    else
+        MaterialTheme.colorScheme.surfaceContainerLow
+
+    val thumbColor = MaterialTheme.colorScheme.onPrimary
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = modifier
+                .width(36.dp)
+                .height(20.dp)
+                .clip(RoundedCornerShape(50))
+                .background(trackColor)
+                .border(1.dp, MaterialTheme.colorScheme.inversePrimary, RoundedCornerShape(14.dp))
+                .clickable(
+                    role = Role.Switch,
+                    onClick = { onCheckedChange(!checked) }
+                )
+                .padding(2.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .align(
+                        if (checked) Alignment.CenterEnd else Alignment.CenterStart
+                    )
+                    .background(thumbColor, CircleShape)
+            )
+        }
+        Box(
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End
+            )
+        }
+
+    }
+}
+
+@Composable
+fun CircularCardCarousel(
+    members: Map<FamilyMember, Pair<String, String>>,
+    cardWidth: Dp = 320.dp,
+    cardHeight: Dp = 200.dp
+) {
+    val realCount = members.size
+    val virtualCount = Int.MAX_VALUE
+    val startIndex = virtualCount / 2
+
+    val listState = rememberLazyListState(startIndex)
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+
+    LazyRow(
+        state = listState,
+        flingBehavior = flingBehavior,
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(virtualCount) { index ->
+            val realIndex = (index % realCount + realCount) % realCount
+            val member = members.keys.elementAt(realIndex)
+            val relation = members.values.elementAt(realIndex)
+
+            CarouselCard(
+                member = member,
+                relations = relation,
+                index = index,
+                listState = listState,
+                width = cardWidth,
+                height = cardHeight
+            )
+        }
+    }
+}
+
+@SuppressLint("FrequentlyChangingValue")
+@Composable
+private fun CarouselCard(
+    member: FamilyMember,
+    relations: Pair<String, String>,
+    index: Int,
+    listState: LazyListState,
+    width: Dp,
+    height: Dp
+) {
+    val layoutInfo = listState.layoutInfo
+    val viewportCenter =
+        (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+
+    val itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+
+    val distanceFromCenter = itemInfo?.let {
+        kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
+    } ?: Int.MAX_VALUE
+
+    val scale by animateFloatAsState(
+        targetValue = if (distanceFromCenter < (itemInfo?.size ?: 0) / 2) 1f else 0.75f,
+        animationSpec = tween(300, easing = FastOutSlowInEasing)
+    )
+
+    Box(
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationY = kotlin.math.abs(distanceFromCenter) * 0.03f
+            }
+            .zIndex(if (distanceFromCenter == 0) 1f else 0f)
+            .width(width)
+            .height(height)
+            .background(
+                MaterialTheme.colorScheme.primary,
+                RoundedCornerShape(20.dp)
+            )
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            logger("relations card $relations")
+            Text(
+                text = "${getIcon(relations.first)} ${relations.first.inHindi()}",
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            Text(
+                text = "${member.fullName} \n ${member.city}",
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            )
+
+            Text(
+                text = "${getIcon(relations.second)} ${relations.second.inHindi()}",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+    }
+}
+
+//@Preview
+@Composable
+fun FilterView(
+    onDismiss: () -> Unit = {},
+    onSortBy: (String) -> Unit = {},
+    currentSortBy: String = "IDUP",
+    onMarriedStatusChanged: (Boolean) -> Unit = {},
+    currentMarriedStatus: Boolean = true,
+    onIsLeavingStatusChanged: (Boolean) -> Unit = {},
+    currentIsLeavingStatus: Boolean = false
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp)
+            )
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                // Intentionally empty – just consume clicks
+            }
+            .padding(20.dp)
+    ) {
+
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Filters",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Image(
+                painter = painterResource(id = R.drawable.ic_close),
+                contentDescription = "Close Filter",
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable {
+                        onDismiss()
+                    }
+            )
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        // Sort section
+        SectionTitle("Sort By")
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            maxItemsInEachRow = 3
+        ) {
+            FilterChip(
+                text = "By Name ⇑",
+                value = "NAMEUP",
+                selected = currentSortBy == "NAMEUP",
+                { onSortBy(it) })
+            FilterChip(
+                text = "By Name ⇓",
+                value = "NAMEDOWN",
+                selected = currentSortBy == "NAMEDOWN",
+                { onSortBy(it) })
+            FilterChip(
+                text = "By ID ⇑",
+                value = "IDUP",
+                selected = currentSortBy == "IDUP",
+                { onSortBy(it) })
+            FilterChip(
+                text = "By ID ⇓",
+                value = "IDDOWN",
+                selected = currentSortBy == "IDDOWN",
+                { onSortBy(it) })
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        // Filter section
+        SectionTitle("Filter By")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ThemedMiniSwitch(
+                title = "Unmarried".inHindi(),
+                checked = currentMarriedStatus,
+                onCheckedChange = { onMarriedStatusChanged(it) }
+            )
+
+
+            ThemedMiniSwitch(
+                title = "IsLeaving".inHindi(),
+                checked = currentIsLeavingStatus,
+                onCheckedChange = { onIsLeavingStatusChanged(it) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Spacer(Modifier.height(12.dp))
+}
+
+@Composable
+fun FilterChip(
+    text: String,
+    value: String,
+    selected: Boolean,
+    onClick: (String) -> Unit = {}
+) {
+    val bgColor =
+        if (selected) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surfaceVariant
+
+    val textColor =
+        if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+        else MaterialTheme.colorScheme.onSurfaceVariant
+
+    val borderColor =
+        if (selected) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.outline
+
+    Box(
+        modifier = Modifier
+            .background(bgColor, RoundedCornerShape(14.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(14.dp))
+            .clickable { onClick(value) }
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = textColor,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+
+@Composable
+fun CircleIconButton(
+    iconRes: Int,
+    contentDescription: String?,
+    size: Dp = 40.dp,
+    iconSize: Dp = (size.value * 0.65).dp,
+    borderWidth: Dp = 1.5.dp,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .border(
+                width = borderWidth,
+                color = MaterialTheme.colorScheme.primary,
+                shape = CircleShape
+            )
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                onClick()
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = iconRes),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
+@Composable
+fun TimelineRow(
+    event: TimelineEvent,
+    isFirst: Boolean,
+    isLast: Boolean
+) {
+    val colorScheme = MaterialTheme.colorScheme
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        // LEFT: Line + Dot
+        Column(
+            modifier = Modifier
+                .width(32.dp)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .weight(1f)
+                    .background(if (!isFirst) colorScheme.primary else Color.Transparent)
+            )
+            // Dot
+            Box(
+                modifier = Modifier
+                    .size(14.dp)
+                    .background(
+                        color = eventDotColor(event.type, colorScheme),
+                        shape = CircleShape
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .weight(1f)
+                    .background(if (!isLast) colorScheme.primary else Color.Transparent)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // RIGHT: Event Card
+        EventCard(event)
+    }
+
+}
+
+
+@Composable
+fun EventCard(event: TimelineEvent) {
+    val colorScheme = MaterialTheme.colorScheme
+    val typography = MaterialTheme.typography
+
+    Column {
+        Spacer(modifier = Modifier.height(10.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = "${eventIcon(event.type)}  ${event.title}",
+                    style = typography.titleMedium,
+                    color = colorScheme.onSurface
+                )
+
+                if (event.subtitle.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = event.subtitle,
+                        style = typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (event.date.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = event.date,
+                        style = typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+    }
+}
+
+fun eventIcon(type: TimelineEventType): String =
+    when (type) {
+        TimelineEventType.BIRTH -> "🎂"
+        TimelineEventType.MARRIAGE -> "❤️"
+        TimelineEventType.SON_BIRTH -> "👶"
+        TimelineEventType.DAUGHTER_BIRTH -> "👧"
+        TimelineEventType.DEATH -> "🕯️"
+    }
+
+
+fun eventDotColor(
+    type: TimelineEventType,
+    colorScheme: ColorScheme
+): Color =
+    when (type) {
+        TimelineEventType.BIRTH ->
+            colorScheme.primary
+
+        TimelineEventType.MARRIAGE ->
+            colorScheme.secondary
+
+        TimelineEventType.SON_BIRTH,
+        TimelineEventType.DAUGHTER_BIRTH ->
+            colorScheme.tertiary
+
+        TimelineEventType.DEATH ->
+            colorScheme.outline
+    }
+
+
 @Preview(showBackground = false)
 @Composable
 fun Pre() {
-    CommonRelativesItem("Pratik", "Father", "Mother")
+    CircleIconButton(
+        iconRes = R.drawable.ic_tree,
+        contentDescription = "See Ancestry",
+        onClick = {
+//            navController.navigate(route = AncestryRoute(viewModel.memberId))
+        }
+    )
+
+//    CircleIconButton(
+//        iconRes = R.drawable.ic_compare,
+//        contentDescription = "Compare Members",
+//        onClick = {
+////            viewModel.resetSecondMemberDetails()
+////            navController.navigate(route = MembersCompareRoute(viewModel.memberId))
+//        }
+//    )
+//    FilterView()
+//    CommonRelativesItem("Pratik", "Father", "Mother")
 }
 
 

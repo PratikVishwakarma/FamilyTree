@@ -9,6 +9,8 @@ import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
 import com.pratik.learning.familyTree.data.local.dto.FullFamilyTree
 import com.pratik.learning.familyTree.data.local.dto.MemberRelationAR
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
+import com.pratik.learning.familyTree.data.local.dto.TimelineEvent
+import com.pratik.learning.familyTree.data.local.model.MemberFilter
 import kotlinx.coroutines.flow.Flow
 
 interface FamilyTreeRepository {
@@ -41,6 +43,7 @@ interface FamilyTreeRepository {
     suspend fun getMemberById(id: Int): FamilyMember?
 
     fun getPagedMembersForSearchByName(name: String, isUnmarried: Boolean = false): Flow<PagingData<MemberWithFather>>
+    fun getPagedMembersForSearchByFilter(name: String, filterMatrix: MemberFilter): Flow<PagingData<MemberWithFather>>
 
     suspend fun getSpouse(memberId: Int): FamilyMember?
 
@@ -63,4 +66,6 @@ interface FamilyTreeRepository {
     suspend fun getMemberRelatives(memberId: Int): MemberRelationAR
 
     suspend fun getMembersBetweenRelations(member1Relatives: MemberRelationAR, member2Relatives: MemberRelationAR): Pair<String, String>
+    suspend fun getMemberSmallBio(memberRelatives: MemberRelationAR): String
+    suspend fun createMemberTimeline(memberRelatives: MemberRelationAR): List<TimelineEvent>
 }

@@ -6,8 +6,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.pratik.learning.familyTree.navigation.AncestryRoute
 import com.pratik.learning.familyTree.presentation.component.Container
@@ -25,6 +28,7 @@ fun AncestryScreen(navController: NavController, viewModel: MemberDetailsViewMod
         viewModel.fetchAncestry()
     }
 
+    var isAlreadyShowToastOnce by rememberSaveable { mutableStateOf(false) }
     val familyTree = viewModel.familyTree.collectAsState().value
     val descendantTree = viewModel.descendantTree.collectAsState().value
     Container(
@@ -44,6 +48,8 @@ fun AncestryScreen(navController: NavController, viewModel: MemberDetailsViewMod
                         onFinalSize = { width, height ->
                             logger("DualFamilyTreeView: width: $width  || height: $height")
                             if (width > 1000 || height > 2000) {
+                                if (isAlreadyShowToastOnce) return@DualFamilyTreeView
+                                isAlreadyShowToastOnce = true
                                 logger("DualFamilyTreeView: width: showing toast")
                                 Toast.makeText(
                                     context, "Please scroll left or down to see whole family tree".inHindi(),

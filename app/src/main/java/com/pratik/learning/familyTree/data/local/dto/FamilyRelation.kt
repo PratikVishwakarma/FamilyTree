@@ -1,5 +1,6 @@
 package com.pratik.learning.familyTree.data.local.dto
 
+import androidx.annotation.Keep
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -9,6 +10,7 @@ import androidx.room.Index
  * This table uses a composite primary key to ensure uniqueness for each directed relation.
  * (e.g., Member A -> Member B, Type 'Father')
  */
+@Keep
 @Entity(
     tableName = "relations",
     primaryKeys = ["relatesToMemberId", "relatedMemberId", "relationType"],

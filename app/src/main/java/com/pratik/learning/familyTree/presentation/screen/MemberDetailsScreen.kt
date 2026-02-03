@@ -1,6 +1,7 @@
 package com.pratik.learning.familyTree.presentation.screen
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,12 +21,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.pratik.learning.familyTree.R
 import com.pratik.learning.familyTree.navigation.AddRelationRoute
 import com.pratik.learning.familyTree.navigation.AncestryRoute
 import com.pratik.learning.familyTree.navigation.EditMemberRoute
 import com.pratik.learning.familyTree.navigation.MemberDetailsRoute
+import com.pratik.learning.familyTree.navigation.MemberTimelineRoute
 import com.pratik.learning.familyTree.navigation.MembersCompareRoute
 import com.pratik.learning.familyTree.presentation.UIState
+import com.pratik.learning.familyTree.presentation.component.CircleIconButton
 import com.pratik.learning.familyTree.presentation.component.ConfirmationPopup
 import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.MemberInfoSection
@@ -119,28 +123,63 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
             }
             item {
                 Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        navController.navigate(route = AncestryRoute(viewModel.memberId))
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
+                HorizontalDivider(Modifier.height(16.dp))
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Text("See Ancestry".inHindi())
+
+                    CircleIconButton(
+                        size = 60.dp,
+                        iconRes = R.drawable.ic_timeline,
+                        contentDescription = "Time line",
+                        onClick = {
+                            navController.navigate(route = MemberTimelineRoute(viewModel.memberId))
+                        }
+                    )
+
+                    CircleIconButton(
+                        size = 60.dp,
+                        iconRes = R.drawable.ic_tree,
+                        contentDescription = "See Ancestry",
+                        onClick = {
+                            navController.navigate(route = AncestryRoute(viewModel.memberId))
+                        }
+                    )
+
+                    CircleIconButton(
+                        size = 60.dp,
+                        iconRes = R.drawable.ic_compare,
+                        contentDescription = "Compare Members",
+                        onClick = {
+                            viewModel.resetSecondMemberDetails()
+                            navController.navigate(route = MembersCompareRoute(viewModel.memberId))
+                        }
+                    )
                 }
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        viewModel.resetSecondMemberDetails()
-                        navController.navigate(route = MembersCompareRoute(viewModel.memberId))
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                ) {
-                    Text("Compare Members".inHindi())
-                }
+//                Button(
+//                    onClick = {
+//                        navController.navigate(route = AncestryRoute(viewModel.memberId))
+//                    },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .height(50.dp)
+//                ) {
+//                    Text("See Ancestry".inHindi())
+//                }
+//                Spacer(Modifier.height(16.dp))
+//                Button(
+//                    onClick = {
+//                        viewModel.resetSecondMemberDetails()
+//                        navController.navigate(route = MembersCompareRoute(viewModel.memberId))
+//                    },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .height(50.dp)
+//                ) {
+//                    Text("Compare Members".inHindi())
+//                }
                 // Admin options
                 Spacer(Modifier.height(16.dp))
                 if (isAdmin) {

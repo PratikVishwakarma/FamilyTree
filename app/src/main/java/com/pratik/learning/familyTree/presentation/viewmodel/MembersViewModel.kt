@@ -9,6 +9,7 @@ import androidx.paging.cachedIn
 import androidx.paging.filter
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
+import com.pratik.learning.familyTree.data.local.model.MemberFilter
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
 import com.pratik.learning.familyTree.navigation.AddMember
 import com.pratik.learning.familyTree.navigation.MemberDetailsRoute
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -50,14 +52,19 @@ class MembersViewModel @Inject constructor(
 
     var relatedMembers = emptyList<Int>()
 
+    private val _filter = MutableStateFlow(MemberFilter())
+    val filter: StateFlow<MemberFilter> = _filter
+
     private val _query = MutableStateFlow("")
     var query: StateFlow<String> = _query
 
     private val _isUnmarried = MutableStateFlow(false)
-    var isUnmarried: StateFlow<Boolean> = _isUnmarried
+    private val _isMale = MutableStateFlow(false)
+    var isMale: StateFlow<Boolean> = _isMale
 
     fun onQueryChanged(newQuery: String) {
         _query.value = newQuery
+        _filter.update { it.copy(query = newQuery) }
     }
 
     private val _error = MutableStateFlow("")
@@ -65,6 +72,7 @@ class MembersViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<UIState>(UIState.IdealUIState)
     var uiState: StateFlow<UIState> = _uiState
+
 
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     val filterResult: Flow<PagingData<MemberWithFather>> =
@@ -80,19 +88,7 @@ class MembersViewModel @Inject constructor(
                         pagingData
                             // filter the relation type by gender
                             .filter { member ->
-                                when (relationType) {
-                                    RELATION_TYPE_MOTHER,
-                                    RELATION_TYPE_DAUGHTER,
-                                    RELATION_TYPE_SISTER,
-                                    RELATION_TYPE_WIFE -> member.gender == "F"
-
-                                    RELATION_TYPE_FATHER,
-                                    RELATION_TYPE_SON,
-                                    RELATION_TYPE_BROTHER,
-                                    RELATION_TYPE_HUSBAND -> member.gender == "M"
-
-                                    else -> true
-                                }
+                                matchesRelationType(member = member)
                             }
                             // filter out already related members like spouse, parents, siblings, grandparents etc.
                             .filter { member ->
@@ -106,6 +102,76 @@ class MembersViewModel @Inject constructor(
                     }
             }.cachedIn(viewModelScope)
 
+    @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+    val filterResult2 : Flow<PagingData<MemberWithFather>> =
+        filter
+            .debounce(500)
+            .flatMapLatest { filter ->
+                familyTreeRepository.getPagedMembersForSearchByFilter(
+                    name = filter.query,
+                    filterMatrix = filter
+                ).map { pagingData ->
+                    pagingData
+                        .filter { member ->
+                            matchesRelationType(member)
+                        }
+                        .filter { member ->
+                            relatedMembers.isEmpty() ||
+                                    member.memberId !in relatedMembers
+                        }
+                        .filter { member ->
+                            applyAdditionalFilters(member, filter)
+                        }
+                }
+            }.cachedIn(viewModelScope)
+
+
+    private fun matchesRelationType(member: MemberWithFather): Boolean =
+        when (relationType) {
+            RELATION_TYPE_MOTHER,
+            RELATION_TYPE_DAUGHTER,
+            RELATION_TYPE_SISTER,
+            RELATION_TYPE_WIFE -> member.gender == "F"
+
+            RELATION_TYPE_FATHER,
+            RELATION_TYPE_SON,
+            RELATION_TYPE_BROTHER,
+            RELATION_TYPE_HUSBAND -> member.gender == "M"
+
+            else -> true
+        }
+
+    private fun applyAdditionalFilters(
+        member: MemberWithFather,
+        filter: MemberFilter
+    ): Boolean {
+
+        // unmarried rule
+        if (filter.isUnmarried) {
+            if (!member.isLiving) return false
+            if (calculateAgeFromDob(member.dob) >= 45) return false
+        }
+
+        filter.isLeaving?.let {
+            return member.isLiving == it
+        }
+        // gender filter (future-safe)
+        filter.isMale?.let {
+            if ((member.gender == "M") != it) return false
+        }
+
+        // city
+        if (filter.city.isNotBlank() &&
+            !member.city.equals(filter.city, ignoreCase = true)
+        ) return false
+
+        // gotra
+        if (filter.gotra.isNotBlank() &&
+            !member.gotra.equals(filter.gotra, ignoreCase = true)
+        ) return false
+
+        return true
+    }
     fun navigateToAddMember(navController: NavController) {
         navController.navigate(route = AddMember)
     }
@@ -144,6 +210,27 @@ class MembersViewModel @Inject constructor(
 
     fun onUnmarriedCheck(checked: Boolean) {
         _isUnmarried.value = checked
+        _filter.update { it.copy(isUnmarried = checked) }
+    }
+
+    fun onIsLivingCheck(checked: Boolean) {
+        _filter.update { it.copy(isLeaving = checked) }
+    }
+
+    fun onSortByChange(newValue: String) {
+        _filter.update { it.copy(sortBy = newValue) }
+    }
+
+    fun showExpandedFilter() {
+        if (_uiState.value is UIState.FilterExpandedUIState)
+            return
+        _uiState.value = UIState.FilterExpandedUIState
+    }
+
+    fun dismissExpandedMember() {
+        if (_uiState.value is UIState.IdealUIState)
+            return
+        _uiState.value = UIState.IdealUIState
     }
 
     fun showExpandedMember(member: MemberWithFather) {
@@ -152,7 +239,8 @@ class MembersViewModel @Inject constructor(
             _uiState.value = expandedUI
     }
 
-    fun dismissExpandedMember() {
+
+    fun dismissFilterExpand() {
         if (_uiState.value is UIState.IdealUIState)
             return
         _uiState.value = UIState.IdealUIState

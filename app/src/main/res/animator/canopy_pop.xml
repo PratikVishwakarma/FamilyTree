@@ -1,0 +1,6 @@
+<objectAnimator android:propertyName="scaleX"
+    android:valueFrom="0.7"
+    android:valueTo="1"
+    android:duration="400"
+    android:interpolator="@android:interpolator/overshoot"
+    xmlns:android="http://schemas.android.com/apk/res/android" />

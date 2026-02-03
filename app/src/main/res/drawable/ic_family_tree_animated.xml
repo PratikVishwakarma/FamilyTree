@@ -1,0 +1,23 @@
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_family_tree_growing">
+
+    <target
+        android:name="trunk"
+        android:animation="@animator/trunk_grow" />
+
+    <target
+        android:name="canopy"
+        android:animation="@animator/canopy_pop" />
+
+    <target
+        android:name="leaf_left"
+        android:animation="@animator/leaf_left_fade" />
+
+    <target
+        android:name="leaf_center"
+        android:animation="@animator/leaf_center_fade" />
+
+    <target
+        android:name="leaf_right"
+        android:animation="@animator/leaf_right_fade" />
+</animated-vector>

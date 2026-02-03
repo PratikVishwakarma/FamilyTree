@@ -19,6 +19,8 @@ import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
 import com.pratik.learning.familyTree.data.local.dto.MemberRelationAR
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
+import com.pratik.learning.familyTree.data.local.dto.TimelineEvent
+import com.pratik.learning.familyTree.data.local.dto.TimelineEventType
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
 import com.pratik.learning.familyTree.presentation.UIState
 import com.pratik.learning.familyTree.utils.GENDER_TYPE_MALE
@@ -76,19 +78,27 @@ class MemberDetailsViewModel @Inject constructor(
     private val _error = MutableStateFlow("")
     var error: StateFlow<String> = _error
 
-
     private val _secondMember = MutableStateFlow(MemberFormState())
     var secondMember: StateFlow<MemberFormState> = _secondMember
 
     private val _secondMemberRelatives = MutableStateFlow(MemberRelationAR())
     var secondMemberRelatives: StateFlow<MemberRelationAR> = _secondMemberRelatives
 
-    private val _commonRelatives: MutableStateFlow<Map<FamilyMember, Pair<String, String>>?> = MutableStateFlow(null)
+    private val _commonRelatives: MutableStateFlow<Map<FamilyMember, Pair<String, String>>?> =
+        MutableStateFlow(null)
     var commonRelatives: StateFlow<Map<FamilyMember, Pair<String, String>>?> = _commonRelatives
 
-    private val _membersBetweenRelations: MutableStateFlow<Pair<String, String>> = MutableStateFlow(Pair("", ""))
+    private val _membersBetweenRelations: MutableStateFlow<Pair<String, String>> =
+        MutableStateFlow(Pair("", ""))
     var membersBetweenRelations: StateFlow<Pair<String, String>> = _membersBetweenRelations
 
+
+    private val _memberTimeline: MutableStateFlow<List<TimelineEvent>> =
+        MutableStateFlow(emptyList())
+    var memberTimeline: StateFlow<List<TimelineEvent>> = _memberTimeline
+
+    private val _memberBio = MutableStateFlow("")
+    var memberBio: StateFlow<String> = _memberBio
 
 
     fun fetchDetails() {
@@ -110,6 +120,7 @@ class MemberDetailsViewModel @Inject constructor(
         _secondMemberRelatives.value = MemberRelationAR()
         _secondMember.value = MemberFormState()
         _commonRelatives.value = null
+        _membersBetweenRelations.value = Pair("", "")
     }
 
     private fun getFamilyHistory(memberId: Int) {
@@ -174,7 +185,10 @@ class MemberDetailsViewModel @Inject constructor(
                     _secondMemberRelatives.value
                 )
                 logger("fetchMemberRelations:: firstMember = ${_relatives.value.member} || secondMember = ${_secondMemberRelatives.value.member} ")
-                logger("fetchMemberRelations:: getMembersBetweenRelations = $membersBetweenRelations  memberId = $memberId")
+                logger("fetchMemberRelations:: getMembersBetweenRelations = ${membersBetweenRelations.value}  memberId = $memberId")
+            } else {
+                createMemberTimeline(_relatives.value)
+                _memberBio.value = familyTreeRepository.getMemberSmallBio(_relatives.value)
             }
         }
     }
@@ -195,13 +209,13 @@ class MemberDetailsViewModel @Inject constructor(
         intersect.forEach {
             val firstMember = firstMemberRelatives[it]
             val secondMember = secondMemberRelatives[it]
-            commonMembers[firstMember?.second ?: secondMember!!.second] = Pair(firstMember?.first ?:"", secondMember?.first ?:"")
+            commonMembers[firstMember?.second ?: secondMember!!.second] =
+                Pair(firstMember?.first ?: "", secondMember?.first ?: "")
         }
         logger("getCommonRelatives commonMembers: $commonMembers")
         return commonMembers
 
     }
-
 
 
     fun onMobileChanged(newValue: String) {
@@ -286,7 +300,11 @@ class MemberDetailsViewModel @Inject constructor(
 
             if (currentMember?.gotra != member.value.gotra && currentMember?.gender == GENDER_TYPE_MALE) {
                 // gotra of the male user has been changes so need to update the spouse and descendants gotra as well
-                familyTreeRepository.updateMember(familyMember, true, relatives.value.spouse?.second?.memberId ?: -1)
+                familyTreeRepository.updateMember(
+                    familyMember,
+                    true,
+                    relatives.value.spouse?.second?.memberId ?: -1
+                )
             } else
                 familyTreeRepository.updateMember(familyMember)
             withContext(Dispatchers.Main) {
@@ -439,7 +457,7 @@ class MemberDetailsViewModel @Inject constructor(
         // Add children
         mRelations.children.forEach { (_, member) ->
             ids.add(member.child.memberId)
-            member.spouseId?.let {  ids.add(it) }
+            member.spouseId?.let { ids.add(it) }
         }
 
         // Add grandchildren
@@ -500,6 +518,16 @@ class MemberDetailsViewModel @Inject constructor(
         return members
     }
 
+    /**
+     * to create the timeline for the first member
+     * */
+    suspend fun createMemberTimeline(memberRelatives: MemberRelationAR) {
+        logger("createMemberTimelineVM: ${memberRelatives.member?.fullName}")
+        if (memberRelatives.member == null) return
+        _memberTimeline.value = familyTreeRepository.createMemberTimeline(memberRelatives)
+    }
+
+
     fun dismissConfirmationPopup() {
         if (_uiState.value == UIState.IdealUIState)
             return
@@ -543,6 +571,7 @@ class MemberDetailsViewModel @Inject constructor(
 
         composeView.drawToBitmap()
     }
+
 
 }
 

@@ -1,0 +1,7 @@
+<objectAnimator android:propertyName="scaleY"
+    android:valueFrom="0"
+    android:valueTo="1"
+    android:duration="300"
+    android:pivotY="1"
+    android:interpolator="@android:interpolator/decelerate_quad"
+    xmlns:android="http://schemas.android.com/apk/res/android" />

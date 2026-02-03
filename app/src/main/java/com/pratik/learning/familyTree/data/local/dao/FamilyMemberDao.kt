@@ -390,9 +390,15 @@ WHERE
     )
 GROUP BY 
     m1.memberId
-ORDER BY 
+ORDER BY
+    CASE WHEN :sortBy = 'NAMEUP' THEN m1.fullName END ASC,
+    CASE WHEN :sortBy = 'NAMEDOWN' THEN m1.fullName END DESC,
+    CASE WHEN :sortBy = 'IDUP' THEN m1.memberId END ASC,
+    CASE WHEN :sortBy = 'IDDOWN' THEN m1.memberId END DESC,
+    CASE WHEN :sortBy = 'DOB' THEN m1.dob END ASC,
+    CASE WHEN :sortBy = 'DOB' THEN m1.dob END DESC,
     m1.memberId DESC
 """)
 
-    fun getAllMembersBySearchQuery(name: String, isUnmarried: Boolean): PagingSource<Int, MemberWithFather>
+    fun getAllMembersBySearchQuery(name: String, isUnmarried: Boolean, sortBy: String = "IDDOWN"): PagingSource<Int, MemberWithFather>
 }

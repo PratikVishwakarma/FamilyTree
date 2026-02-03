@@ -24,7 +24,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -56,6 +57,8 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.compose.animation.graphics)
+    implementation(libs.androidx.compose.foundation)
 
     // Testing Navigation
     androidTestImplementation(libs.androidx.navigation.testing)
@@ -71,6 +74,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("androidx.compose.material:material-icons-extended")
+
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)

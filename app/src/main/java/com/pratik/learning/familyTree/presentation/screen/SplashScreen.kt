@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,6 +29,7 @@ import androidx.navigation.NavController
 import com.pratik.learning.familyTree.R
 import com.pratik.learning.familyTree.navigation.Home
 import com.pratik.learning.familyTree.navigation.SplashRoute
+import com.pratik.learning.familyTree.presentation.component.AnimatedAppLogo
 import com.pratik.learning.familyTree.presentation.component.NoInternetScreen
 import com.pratik.learning.familyTree.presentation.viewmodel.SplashViewModel
 import kotlinx.coroutines.launch
@@ -81,24 +85,30 @@ fun SplashScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_app_logo),
-                        contentDescription = "App Logo",
-                        modifier = Modifier
-                            .size(120.dp)
-                            .graphicsLayer {
-                                scaleX = scale.value
-                                scaleY = scale.value
-                                alpha = mAlpha.value
-                            }
-                    )
+//                    Image(
+//                        painter = painterResource(id = R.drawable.ic_app_logo),
+//                        contentDescription = "App Logo",
+//                        modifier = Modifier
+//                            .size(120.dp)
+//                            .graphicsLayer {
+//                                scaleX = scale.value
+//                                scaleY = scale.value
+//                                alpha = mAlpha.value
+//                            }
+//                    )
+                    AnimatedAppLogo()
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     if (!isDataLoaded) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 3.dp
+//                        CircularProgressIndicator(
+//                            color = Color.White,
+//                            strokeWidth = 3.dp
+//                        )
+                        Text(
+                            text = "Data Loading....",
+                            style = typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }

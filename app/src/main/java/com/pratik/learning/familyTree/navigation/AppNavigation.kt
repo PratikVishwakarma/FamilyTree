@@ -20,6 +20,7 @@ import com.pratik.learning.familyTree.presentation.screen.AncestryScreen
 import com.pratik.learning.familyTree.presentation.screen.MemberDetailsScreen
 import com.pratik.learning.familyTree.presentation.screen.EditMemberScreen
 import com.pratik.learning.familyTree.presentation.screen.MemberCompareScreen
+import com.pratik.learning.familyTree.presentation.screen.MemberTimelineScreen
 import com.pratik.learning.familyTree.presentation.screen.SplashScreen
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
@@ -121,6 +122,14 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 membersDetailsViewModel.memberId = memberId.memberId
                 val membersViewModel = hiltViewModel<MembersViewModel>()
                 MemberCompareScreen(membersDetailsViewModel, membersViewModel)
+            }
+
+            composable<MemberTimelineRoute> { backStackEntry ->
+                val memberId = backStackEntry.toRoute<MemberDetailsRoute>()
+                val membersDetailsViewModel =
+                    backStackEntry.sharedViewModel<MemberDetailsViewModel>(navController)
+                membersDetailsViewModel.memberId = memberId.memberId
+                MemberTimelineScreen(membersDetailsViewModel)
             }
         }
     }

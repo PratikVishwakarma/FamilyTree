@@ -35,5 +35,8 @@ data class AddRelationRoute(val memberId: Int) : AppRoute
 @Serializable
 data class MembersCompareRoute(val memberId: Int) : AppRoute
 
+@Serializable
+data class MemberTimelineRoute(val memberId: Int) : AppRoute
+
 
 

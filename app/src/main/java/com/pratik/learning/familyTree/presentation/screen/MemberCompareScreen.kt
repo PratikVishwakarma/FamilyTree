@@ -1,22 +1,17 @@
 package com.pratik.learning.familyTree.presentation.screen
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -26,13 +21,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.pratik.learning.familyTree.presentation.component.CompareDivider
+import com.pratik.learning.familyTree.presentation.component.CircularCardCarousel
 import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.MemberInfoSectionSmall
 import com.pratik.learning.familyTree.presentation.component.MemberSearchPicker
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
+import com.pratik.learning.familyTree.utils.getIcon
 import com.pratik.learning.familyTree.utils.inHindi
 
 
@@ -49,6 +46,7 @@ fun MemberCompareScreen(
 
     Container(
         title = "Compare Members".inHindi(),
+        paddingValues = PaddingValues(horizontal = 16.dp, 0.dp),
         rightButton = {
 
         }
@@ -71,30 +69,47 @@ fun MemberCompareScreen(
         ) {
             MemberInfoSectionSmall(firstMember, alignment = Alignment.CenterStart, membersBetweenRelations.first)
             if (memberDetailsViewModel.secondMemberId != -1) {
-                commonRelatives?.let { relatives ->
+                if (!commonRelatives.isNullOrEmpty()) {
+                    commonRelatives?.let { relatives ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+//                        VerticalDivider(Modifier
+//                            .width(6.dp)
+//                            .fillMaxHeight()
+//                            .background(Color.Green, shape = CircleShape))
+//                        LazyColumn(
+//                            modifier = Modifier
+//                                .matchParentSize()
+//                                .padding(vertical = 0.dp, horizontal = 16.dp),
+//                            verticalArrangement = Arrangement.Center,
+//                            horizontalAlignment = Alignment.CenterHorizontally
+//                        ) {
+//                            item {
+//                                CompareDivider(relatives)
+//                            }
+//                        }
+                            CircularCardCarousel(members = relatives)
+                        }
+                    }
+                }
+                else
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        VerticalDivider(Modifier
-                            .width(6.dp)
-                            .fillMaxHeight()
-                            .background(Color.Green, shape = CircleShape))
-                        LazyColumn(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .padding(vertical = 0.dp, horizontal = 16.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            item {
-                                CompareDivider(relatives)
-                            }
-                        }
+                        Text(
+                            text = "No common relative found...",
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
-                }
                 MemberInfoSectionSmall(secondMember, relation = membersBetweenRelations.second)
             } else {
                 Spacer(Modifier.height(16.dp))
