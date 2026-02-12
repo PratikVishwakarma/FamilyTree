@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.drawToBitmap
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.pratik.learning.familyTree.data.local.dto.DescendantNode
@@ -20,7 +19,6 @@ import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
 import com.pratik.learning.familyTree.data.local.dto.MemberRelationAR
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import com.pratik.learning.familyTree.data.local.dto.TimelineEvent
-import com.pratik.learning.familyTree.data.local.dto.TimelineEventType
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
 import com.pratik.learning.familyTree.presentation.UIState
 import com.pratik.learning.familyTree.utils.GENDER_TYPE_MALE
@@ -31,6 +29,8 @@ import com.pratik.learning.familyTree.utils.RELATION_TYPE_HUSBAND
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_MOTHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_WIFE
 import com.pratik.learning.familyTree.utils.RelationFormState
+import com.pratik.learning.familyTree.utils.SyncPrefs.addIdToMyFavList
+import com.pratik.learning.familyTree.utils.SyncPrefs.removeIdFromMyFavList
 import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
 import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.logger
@@ -50,7 +50,7 @@ import javax.inject.Inject
 class MemberDetailsViewModel @Inject constructor(
     private val familyTreeRepository: FamilyTreeRepository,
     @ApplicationContext private val context: Context
-) : ViewModel() {
+) : BaseViewModel() {
     var memberId = -1
     var secondMemberId = -1
 
@@ -127,9 +127,9 @@ class MemberDetailsViewModel @Inject constructor(
         println("getFamilyHistory for member: $memberId")
         viewModelScope.launch(Dispatchers.IO) {
             _familyTree.value = familyTreeRepository.getFullAncestorTree(memberId)
-            println("full tree ${_familyTree.value}")
+//            println("full tree ${_familyTree.value}")
             _descendantTree.value = familyTreeRepository.getFullDescendantTree(memberId)
-            println("Complete descendant tree ${_descendantTree.value}")
+//            println("Complete descendant tree ${_descendantTree.value}")
         }
     }
 
@@ -139,7 +139,7 @@ class MemberDetailsViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val mMember = familyTreeRepository.getMemberById(memberId)
             mMember?.let {
-                logger("Member Details: $it")
+//                logger("Member Details: $it")
                 val mMemberFormState = MemberFormState(
                     fullName = it.fullName,
                     gotra = it.gotra,
@@ -154,20 +154,22 @@ class MemberDetailsViewModel @Inject constructor(
                 if (isFirstMember) {
                     _member.value = mMemberFormState
                     currentMember = it
-                    logger("pratik:: -2 = member ${_relatives.value.member}  || $it")
                 } else {
                     _secondMember.value = mMemberFormState
                     comparedMember = it
-                    logger("pratik:: -1 = member ${_secondMemberRelatives.value.member}  || $it")
                     fetchMemberRelations(isFirstMember = false)
                 }
             }
         }
     }
 
+    /**
+     * to get the members relatives for the first and second user (in case of compression of two members)
+     * @param isFirstMember: to get the relatives of the first member in false that means fetching for second member and compare them
+     * */
     private fun fetchMemberRelations(isFirstMember: Boolean = true) {
         val memberId = if (isFirstMember) memberId else secondMemberId
-        logger("fetchMemberRelations:: isFirstMember = $isFirstMember  memberId = $memberId")
+//        logger("fetchMemberRelations:: isFirstMember = $isFirstMember  memberId = $memberId")
 
         viewModelScope.launch(Dispatchers.IO) {
             if (isFirstMember) {
@@ -177,15 +179,15 @@ class MemberDetailsViewModel @Inject constructor(
                     familyTreeRepository.getMemberRelatives(memberId = memberId)
             }
             delay(1000)
-            logger("fetchMemberRelations:: isFirstMember = $isFirstMember  memberId = $memberId _relatives.value = ${_relatives.value}")
+//            logger("fetchMemberRelations:: isFirstMember = $isFirstMember  memberId = $memberId _relatives.value = ${_relatives.value}")
             if (!isFirstMember) {
                 _commonRelatives.value = getCommonRelatives()
                 _membersBetweenRelations.value = familyTreeRepository.getMembersBetweenRelations(
                     _relatives.value,
                     _secondMemberRelatives.value
                 )
-                logger("fetchMemberRelations:: firstMember = ${_relatives.value.member} || secondMember = ${_secondMemberRelatives.value.member} ")
-                logger("fetchMemberRelations:: getMembersBetweenRelations = ${membersBetweenRelations.value}  memberId = $memberId")
+//                logger("fetchMemberRelations:: firstMember = ${_relatives.value.member} || secondMember = ${_secondMemberRelatives.value.member} ")
+//                logger("fetchMemberRelations:: getMembersBetweenRelations = ${membersBetweenRelations.value}  memberId = $memberId")
             } else {
                 createMemberTimeline(_relatives.value)
                 _memberBio.value = familyTreeRepository.getMemberSmallBio(_relatives.value)
@@ -215,6 +217,16 @@ class MemberDetailsViewModel @Inject constructor(
         logger("getCommonRelatives commonMembers: $commonMembers")
         return commonMembers
 
+    }
+
+    fun addRemoveFromFavList(isFav: Boolean) {
+        logger("addRemoveFromFavList: $isFav")
+        viewModelScope.launch {
+            if (!isFav)
+                addIdToMyFavList(context, memberId)
+            else
+                removeIdFromMyFavList(context, memberId)
+        }
     }
 
 
@@ -383,7 +395,8 @@ class MemberDetailsViewModel @Inject constructor(
                         FamilyRelation(
                             relatesToMemberId = memberId,
                             relationType = formState.relation,
-                            relatedMemberId = formState.relatedToMemberId
+                            relatedMemberId = formState.relatedToMemberId,
+                            dom = formState.dom
                         )
                     )
 
@@ -399,7 +412,8 @@ class MemberDetailsViewModel @Inject constructor(
                         FamilyRelation(
                             relatesToMemberId = formState.relatedToMemberId,
                             relationType = if (isHusband) RELATION_TYPE_WIFE else RELATION_TYPE_HUSBAND,
-                            relatedMemberId = memberId
+                            relatedMemberId = memberId,
+                            dom = formState.dom
                         )
                     )
                 }
@@ -439,6 +453,9 @@ class MemberDetailsViewModel @Inject constructor(
         _error.value = error
     }
 
+    /**
+     * to get/fetch/store the ids of all the relatives so that it can be used in comparing the two members
+     * */
     fun getAllRelatedMemberIds(): List<Int> {
         val ids = mutableSetOf<Int>() // use a set to avoid duplicates
         val mRelations = relatives.value
@@ -452,11 +469,11 @@ class MemberDetailsViewModel @Inject constructor(
         mRelations.inLaws.forEach { (_, member) -> ids.add(member.memberId) }
 
         // Add siblings
-        mRelations.siblings.forEach { (_, member) -> ids.add(member.memberId) }
+        mRelations.siblings.forEach { (_, member) -> ids.add(member.innerMember.memberId) }
 
         // Add children
         mRelations.children.forEach { (_, member) ->
-            ids.add(member.child.memberId)
+            ids.add(member.innerMember.memberId)
             member.spouseId?.let { ids.add(it) }
         }
 
@@ -493,11 +510,11 @@ class MemberDetailsViewModel @Inject constructor(
         }
         // Add siblings
         mRelations.siblings.forEach {
-            members[it.second.memberId] = Pair(it.first, it.second)
+            members[it.second.innerMember.memberId] = Pair(it.first, it.second.innerMember)
         }
         // Add children
         mRelations.children.forEach {
-            members[it.second.child.memberId] = Pair(it.first, it.second.child)
+            members[it.second.innerMember.memberId] = Pair(it.first, it.second.innerMember)
         }
 
         // Add grandchildren

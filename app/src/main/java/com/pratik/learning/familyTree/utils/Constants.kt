@@ -43,12 +43,17 @@ const val RELATION_TYPE_HUSBAND_OF_SISTER_OF_MOTHER = "Husband of sister of moth
 const val RELATION_TYPE_SON_OF_SISTER = "Son of sister"   // bhanja (nephew father side)
 const val RELATION_TYPE_DAUGHTER_OF_SISTER = "Daughter of sister"   // bhanji (nephew father side)
 
-const val RELATION_TYPE_BROTHER_OF_HUSBAND = "Brother of Husband devar"   // Devar ji
+const val RELATION_TYPE_ELDER_BROTHER_OF_HUSBAND = "Elder brother of Husband jeth"   // Jeth ji
+const val RELATION_TYPE_WIFI_OF_ELDER_BROTHER_OF_HUSBAND = "Wife or elder brother of Husband jethani"   // Jethani ji
+const val RELATION_TYPE_YOUNGER_BROTHER_OF_HUSBAND = "Younger brother of Husband devar"   // Devar ji
+const val RELATION_TYPE_WIFI_OF_YOUNGER_BROTHER_OF_HUSBAND = "Wife or younger brother of Husband devarani"   // Devarani ji
 const val RELATION_TYPE_SISTER_OF_HUSBAND = "Sister of Husband nanad"   // Nanad
+const val RELATION_TYPE_HUSBAND_OF_SISTER_OF_HUSBAND = "Husband of Sister of Husband nanadoi"   // Nanadoi
 const val RELATION_TYPE_HUSBAND_OF_SISTER = "Brother-in-law jija"   // Jija ji
 const val RELATION_TYPE_WIFE_OF_BROTHER = "Sister-in-law bhabhi"   // Bhabhi ji
-const val RELATION_TYPE_SISTER_OF_WIFI = "Sister-in-law sali"   // Sala
-const val RELATION_TYPE_BROTHER_OF_WIFI = "Brother-in-law sala"   // Sali
+const val RELATION_TYPE_SISTER_OF_WIFI = "Sister-in-law sali"   // Sali
+const val RELATION_TYPE_HUSBAND_OF_SISTER_OF_WIFI = "husband of Sister-in-law sali"   // साडू
+const val RELATION_TYPE_BROTHER_OF_WIFI = "Brother-in-law sala"   // Sala
 
 
 

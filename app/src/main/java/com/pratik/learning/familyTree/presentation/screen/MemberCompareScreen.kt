@@ -20,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pratik.learning.familyTree.presentation.component.CircularCardCarousel
@@ -29,7 +28,6 @@ import com.pratik.learning.familyTree.presentation.component.MemberInfoSectionSm
 import com.pratik.learning.familyTree.presentation.component.MemberSearchPicker
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
-import com.pratik.learning.familyTree.utils.getIcon
 import com.pratik.learning.familyTree.utils.inHindi
 
 

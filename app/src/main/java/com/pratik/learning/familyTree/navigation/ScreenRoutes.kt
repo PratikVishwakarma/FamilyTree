@@ -12,7 +12,7 @@ data object MemberListGraph : AppRoute
 data object SplashRoute : AppRoute
 
 @Serializable
-data class Home(val relation: String = "") : AppRoute
+data object Home : AppRoute
 
 @Serializable
 data object AddMember : AppRoute
@@ -38,5 +38,8 @@ data class MembersCompareRoute(val memberId: Int) : AppRoute
 @Serializable
 data class MemberTimelineRoute(val memberId: Int) : AppRoute
 
+@Serializable data object MySpace : AppRoute
+@Serializable data object Admin : AppRoute
+@Serializable data object About : AppRoute
 
 

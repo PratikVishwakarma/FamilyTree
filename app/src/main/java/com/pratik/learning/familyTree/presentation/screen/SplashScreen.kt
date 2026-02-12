@@ -22,13 +22,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.pratik.learning.familyTree.R
 import com.pratik.learning.familyTree.navigation.Home
-import com.pratik.learning.familyTree.navigation.SplashRoute
 import com.pratik.learning.familyTree.presentation.component.AnimatedAppLogo
 import com.pratik.learning.familyTree.presentation.component.NoInternetScreen
 import com.pratik.learning.familyTree.presentation.viewmodel.SplashViewModel
@@ -47,10 +46,14 @@ fun SplashScreen(
 
     // Navigate to home when data loaded
     LaunchedEffect(isDataLoaded) {
-        if (isDataLoaded)
-            navController.navigate(Home()) {
-                popUpTo(SplashRoute) { inclusive = true }
+        if (isDataLoaded) {
+            navController.navigate(Home) {
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = true
+                }
+                launchSingleTop = true
             }
+        }
     }
 
     // Animate logo
@@ -84,6 +87,12 @@ fun SplashScreen(
                     .background(Color(0xFF1E88E5)),
                 contentAlignment = Alignment.Center
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.splash_background), // Your background image resource
+                    contentDescription = "Background Image",
+                    contentScale = ContentScale.FillBounds, // Scales the image to fill the bounds of the Box
+                    modifier = Modifier.matchParentSize() // Stretches the image to fill the Box size
+                )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
 //                    Image(
 //                        painter = painterResource(id = R.drawable.ic_app_logo),

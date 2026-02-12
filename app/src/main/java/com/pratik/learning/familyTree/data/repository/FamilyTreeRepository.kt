@@ -1,7 +1,7 @@
 package com.pratik.learning.familyTree.data.repository
 
 import androidx.paging.PagingData
-import com.pratik.learning.familyTree.data.local.dto.ChildWithSpouseDto
+import com.pratik.learning.familyTree.data.local.dto.MemberWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.DescendantNode
 import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
@@ -49,7 +49,7 @@ interface FamilyTreeRepository {
 
     suspend fun getChildren(memberId: Int): List<FamilyMember>
 
-    suspend fun getChildrenWithSpouse(memberId: Int): List<ChildWithSpouseDto>
+    suspend fun getChildrenWithSpouse(memberId: Int): List<MemberWithSpouseDto>
 
     suspend fun getFullAncestorTree(memberId: Int): DualAncestorTree?
 
@@ -66,6 +66,7 @@ interface FamilyTreeRepository {
     suspend fun getMemberRelatives(memberId: Int): MemberRelationAR
 
     suspend fun getMembersBetweenRelations(member1Relatives: MemberRelationAR, member2Relatives: MemberRelationAR): Pair<String, String>
-    suspend fun getMemberSmallBio(memberRelatives: MemberRelationAR): String
+    suspend fun getMemberSmallBio(memberRelatives: MemberRelationAR, isAncestorBio: Boolean = false): String
     suspend fun createMemberTimeline(memberRelatives: MemberRelationAR): List<TimelineEvent>
+    fun getPagedFavMembersForSearchByFilter(name: String, ids: List<Int>): Flow<PagingData<MemberWithFather>>
 }

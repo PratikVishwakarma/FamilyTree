@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -38,10 +39,14 @@ import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.MemberSearchPicker
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_HUSBAND
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_WIFE
 import com.pratik.learning.familyTree.utils.RelationFormState
+import com.pratik.learning.familyTree.utils.formatIsoDate
 import com.pratik.learning.familyTree.utils.getAvailableRelationsForGender
 import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.relationTextInHindi
+import com.pratik.learning.familyTree.utils.showDatePicker
 
 @Composable
 fun AddRelationScreen(
@@ -49,6 +54,7 @@ fun AddRelationScreen(
     detailViewModel: MemberDetailsViewModel,
     navController: NavController,
 ) {
+    val context = LocalContext.current
     var formState by remember { mutableStateOf(RelationFormState()) }
     val member = detailViewModel.member.collectAsState().value
     val error = detailViewModel.error.collectAsState().value
@@ -58,6 +64,11 @@ fun AddRelationScreen(
 
     var showPicker by remember { mutableStateOf(false) }
     var selectedMember by remember { mutableStateOf<MemberWithFather?>(null) }
+    val openDatePicker: (Boolean) -> Unit = { _ ->
+        showDatePicker(context) { newDate ->
+            formState = formState.copy(dom = newDate)
+        }
+    }
 
     LaunchedEffect(selectedMember) {
         detailViewModel.checkRelationValidity(
@@ -71,6 +82,11 @@ fun AddRelationScreen(
             relatedToMemberId = selectedMember?.memberId ?: -1,
             relatesToFullName = member.fullName,
             relatesToMemberId = detailViewModel.memberId
+        )
+        if (formState.relation == RELATION_TYPE_WIFE || formState.relation == RELATION_TYPE_HUSBAND) {
+            openDatePicker(true)
+        } else formState.copy(
+            dom = ""
         )
         detailViewModel.createRelation(formState)
     }
@@ -110,7 +126,7 @@ fun AddRelationScreen(
             )
             Spacer(Modifier.height(16.dp))
 
-            // 3. Gender Dropdown
+            // 2. Relation Dropdown
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = if(formState.relation.isEmpty()) formState.relation else member.fullName+" "+formState.relation.relationTextInHindi(),
@@ -135,7 +151,7 @@ fun AddRelationScreen(
                             text = { Text(relation.relationTextInHindi()) },
                             onClick = {
                                 if (relation == formState.relation) return@DropdownMenuItem
-                                formState = formState.copy(relation = relation)
+                                formState = formState.copy(relation = relation, dom = "")
                                 detailViewModel.checkRelationValidity(relation = relation)
 
                                 selectedMember = null
@@ -162,7 +178,6 @@ fun AddRelationScreen(
                             contentDescription = "Select Member",
                             Modifier.clickable {
                                 showPicker = true
-//                                navController.navigate(Home(formState.relation))
                             }
                         )
                     },
@@ -196,6 +211,10 @@ fun AddRelationScreen(
                         Spacer(Modifier.height(8.dp))
                     }
                 }
+            }
+            if (formState.dom.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Text("Marriage Date: ${formatIsoDate(formState.dom)}")
             }
             Spacer(Modifier.height(32.dp))
             Log.d("AddRelationScreen"," error: $error")

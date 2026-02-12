@@ -29,7 +29,7 @@ object HiText {
 
 
 fun String.inHindi(): String {
-    return when (this.lowercase()) {
+    return when (this.lowercase().trim()) {
         RELATION_TYPE_FATHER.lowercase() -> "पिता"
         RELATION_TYPE_MOTHER.lowercase() -> "माता"
         RELATION_TYPE_SON_IN_LAW.lowercase() -> "दामाद"
@@ -53,6 +53,52 @@ fun String.inHindi(): String {
         RELATION_TYPE_GREAT____GRANDCHILD.lowercase() -> "पर...परपोता"
         GENDER_TYPE_MALE.lowercase() -> "पुरुष"
         GENDER_TYPE_FEMALE.lowercase() -> "महिला"
+        RELATION_TYPE_GRANDCHILD_MOTHER_SIDE.lowercase() -> "नाती"
+        RELATION_TYPE_GRANDCHILD_MOTHER_SIDE_F.lowercase() -> "नवासी"
+        RELATION_TYPE_COUSIN_BROTHER_FATHER_SIDE.lowercase() -> "चचेरा भाई"
+        RELATION_TYPE_COUSIN_SISTER_FATHER_SIDE.lowercase() -> "चचेरी बहिन"
+        RELATION_TYPE_COUSIN_BROTHER_MOTHER_SIDE.lowercase() -> "ममेरा भाई"
+        RELATION_TYPE_COUSIN_SISTER_MOTHER_SIDE.lowercase() -> "ममेरी बहिन"
+        RELATION_TYPE_COUSIN_SISTER.lowercase() -> "चचेरी/ममेरी बहिन"
+        RELATION_TYPE_COUSIN_BROTHER.lowercase() -> "चचेरा/ममेरा भाई"
+        RELATION_TYPE_ELDER_BROTHER_OF_FATHER.lowercase() -> "ताऊजी/बड़े पापा"
+        RELATION_TYPE_WIFE_OF_ELDER_BROTHER_OF_FATHER.lowercase() -> "ताईजी/बड़ी मम्मी"
+        RELATION_TYPE_YOUNGER_BROTHER_OF_FATHER.lowercase() -> "चाचा जी"
+        RELATION_TYPE_WIFE_OF_YOUNGER_BROTHER_OF_FATHER.lowercase() -> "चाची जी"
+        RELATION_TYPE_SISTER_OF_FATHER.lowercase() -> "बुआ जी"
+        RELATION_TYPE_HUSBAND_OF_SISTER_OF_FATHER.lowercase() -> "फूफा जी"
+        RELATION_TYPE_SON_OF_BROTHER.lowercase() -> "भतीजा"
+        RELATION_TYPE_DAUGHTER_OF_BROTHER.lowercase() -> "भतीजी"
+        RELATION_TYPE_BROTHER_OF_MOTHER.lowercase() -> "मामा जी"
+        RELATION_TYPE_WIFE_OF_BROTHER_OF_MOTHER.lowercase() -> "मामी जी"
+        RELATION_TYPE_SISTER_OF_MOTHER.lowercase() -> "मौसी जी"
+        RELATION_TYPE_HUSBAND_OF_SISTER_OF_MOTHER.lowercase() -> "मौसा जी"
+        RELATION_TYPE_SON_OF_SISTER.lowercase() -> "भांजा"
+        RELATION_TYPE_DAUGHTER_OF_SISTER.lowercase() -> "भांजी"
+        RELATION_TYPE_HUSBAND_OF_SISTER.lowercase() -> "जीजा जी"
+        RELATION_TYPE_WIFE_OF_BROTHER.lowercase() -> "भाभी जी"
+        RELATION_TYPE_ELDER_BROTHER_OF_HUSBAND.lowercase() -> "जेठ जी"
+        RELATION_TYPE_WIFI_OF_ELDER_BROTHER_OF_HUSBAND.lowercase() -> "जेठानी जी"
+        RELATION_TYPE_YOUNGER_BROTHER_OF_HUSBAND.lowercase() -> "देवर जी"
+        RELATION_TYPE_WIFI_OF_YOUNGER_BROTHER_OF_HUSBAND.lowercase() -> "देवरानी जी"
+        RELATION_TYPE_SISTER_OF_HUSBAND.lowercase() -> "ननद"
+        RELATION_TYPE_HUSBAND_OF_SISTER_OF_HUSBAND.lowercase() -> "नन्दोई"
+        RELATION_TYPE_SISTER_OF_WIFI.lowercase() -> "साली"
+        RELATION_TYPE_BROTHER_OF_WIFI.lowercase() -> "साला"
+        RELATION_TYPE_HUSBAND_OF_SISTER_OF_WIFI.lowercase() -> "साडू"
+        "parents" -> "माता-पीता"
+        "spouse" -> "जीवन साथी"
+        "in-laws" -> "सास-ससुर"
+        "siblings" -> "भाई-बहन"
+        "children" -> "बच्चे"
+        "father-grandparents" -> "दादा-दादी"
+        "mother-grandparents" -> "नाना-नानी"
+        "grandchildren" -> "पोता-पोती"
+        "mother-uncle and aunt" -> "मामा-मामी / मौसा-मौसी"
+        "father-uncle and aunt" -> "ताऊ-तेजी / चाचा-चाची / बुआ-फूफाजी"
+        "in-laws side" -> "ससुराल पक्ष"
+        "mother side" -> "ननिहाल पक्ष"
+        "spouse siblings" -> "साला-साली / भाभी"
         "full name" -> "नाम"
         "deceased" -> "स्वर्गवासी"
         "gotra" -> "गोत्र"
@@ -129,9 +175,10 @@ fun String.relationTextInHindi(): String {
         RELATION_TYPE_DAUGHTER_OF_SISTER -> "भांजी"
         RELATION_TYPE_HUSBAND_OF_SISTER -> "जीजा जी"
         RELATION_TYPE_WIFE_OF_BROTHER -> "भाभी जी"
-        RELATION_TYPE_BROTHER_OF_HUSBAND -> "देवर जी"
+        RELATION_TYPE_YOUNGER_BROTHER_OF_HUSBAND -> "देवर जी"
         RELATION_TYPE_SISTER_OF_HUSBAND -> "ननद"
         RELATION_TYPE_SISTER_OF_WIFI -> "साली"
+        RELATION_TYPE_HUSBAND_OF_SISTER_OF_WIFI -> "साडू"
         RELATION_TYPE_BROTHER_OF_WIFI -> "साला"
         "Full Name" -> "नाम"
         "Deceased" -> "स्वर्गवासी"
@@ -139,5 +186,37 @@ fun String.relationTextInHindi(): String {
         "DOB", "Date of Birth" -> "जन्मदिन"
         "DOD", "Date of Death" -> "मृत्यु दिवस"
         else -> this
+    }
+}
+
+
+fun String.getSpouseRelation() : String {
+    return when(this) {
+        RELATION_TYPE_SON -> RELATION_TYPE_DAUGHTER_IN_LAW
+        RELATION_TYPE_DAUGHTER -> RELATION_TYPE_SON_IN_LAW
+        RELATION_TYPE_BROTHER -> RELATION_TYPE_WIFE_OF_BROTHER
+        RELATION_TYPE_WIFE_OF_BROTHER -> RELATION_TYPE_BROTHER
+        RELATION_TYPE_ELDER_BROTHER_OF_FATHER -> RELATION_TYPE_WIFE_OF_ELDER_BROTHER_OF_FATHER
+        RELATION_TYPE_WIFE_OF_ELDER_BROTHER_OF_FATHER -> RELATION_TYPE_ELDER_BROTHER_OF_FATHER
+        RELATION_TYPE_YOUNGER_BROTHER_OF_FATHER -> RELATION_TYPE_WIFE_OF_YOUNGER_BROTHER_OF_FATHER
+        RELATION_TYPE_WIFE_OF_YOUNGER_BROTHER_OF_FATHER -> RELATION_TYPE_YOUNGER_BROTHER_OF_FATHER
+        RELATION_TYPE_SISTER_OF_FATHER -> RELATION_TYPE_HUSBAND_OF_SISTER_OF_FATHER
+        RELATION_TYPE_HUSBAND_OF_SISTER_OF_FATHER -> RELATION_TYPE_SISTER_OF_FATHER
+        RELATION_TYPE_BROTHER_OF_MOTHER -> RELATION_TYPE_WIFE_OF_BROTHER_OF_MOTHER
+        RELATION_TYPE_WIFE_OF_BROTHER_OF_MOTHER -> RELATION_TYPE_BROTHER_OF_MOTHER
+        RELATION_TYPE_SISTER_OF_MOTHER -> RELATION_TYPE_HUSBAND_OF_SISTER_OF_MOTHER
+        RELATION_TYPE_HUSBAND_OF_SISTER_OF_MOTHER -> RELATION_TYPE_SISTER_OF_MOTHER
+        RELATION_TYPE_SISTER -> RELATION_TYPE_HUSBAND_OF_SISTER
+        RELATION_TYPE_HUSBAND_OF_SISTER -> RELATION_TYPE_SISTER
+        RELATION_TYPE_YOUNGER_BROTHER_OF_HUSBAND -> RELATION_TYPE_WIFI_OF_YOUNGER_BROTHER_OF_HUSBAND
+        RELATION_TYPE_WIFI_OF_YOUNGER_BROTHER_OF_HUSBAND -> RELATION_TYPE_YOUNGER_BROTHER_OF_HUSBAND
+        RELATION_TYPE_ELDER_BROTHER_OF_HUSBAND -> RELATION_TYPE_WIFI_OF_ELDER_BROTHER_OF_HUSBAND
+        RELATION_TYPE_WIFI_OF_ELDER_BROTHER_OF_HUSBAND -> RELATION_TYPE_ELDER_BROTHER_OF_HUSBAND
+        RELATION_TYPE_SISTER_OF_HUSBAND -> RELATION_TYPE_HUSBAND_OF_SISTER_OF_HUSBAND
+        RELATION_TYPE_HUSBAND_OF_SISTER_OF_HUSBAND -> RELATION_TYPE_SISTER_OF_HUSBAND
+        RELATION_TYPE_BROTHER_OF_WIFI -> RELATION_TYPE_WIFE_OF_BROTHER
+        RELATION_TYPE_SISTER_OF_WIFI -> RELATION_TYPE_HUSBAND_OF_SISTER_OF_WIFI
+        RELATION_TYPE_HUSBAND_OF_SISTER_OF_WIFI -> RELATION_TYPE_SISTER_OF_WIFI
+        else -> "$this's spouse"
     }
 }

@@ -39,8 +39,6 @@ inline fun <reified T : ViewModel> NavBackStackEntry.sharedViewModel(
 }
 
 
-val isAdmin = true
-
 val genders = listOf(GENDER_TYPE_MALE, GENDER_TYPE_FEMALE)
 val states = listOf(
     "Andhra Pradesh",
@@ -107,26 +105,19 @@ fun getAvailableRelationsForGender(gender: String): List<String> {
 fun getIcon(relation: String): String {
     return when (relation) {
         RELATION_TYPE_FATHER, RELATION_TYPE_FATHER_IN_LAW -> "🧔‍♂️"
-        RELATION_TYPE_MOTHER, RELATION_TYPE_MOTHER_IN_LAW -> "🧑️"
+        RELATION_TYPE_MOTHER, RELATION_TYPE_MOTHER_IN_LAW, RELATION_TYPE_SISTER_OF_FATHER,
+        RELATION_TYPE_WIFE_OF_ELDER_BROTHER_OF_FATHER, RELATION_TYPE_WIFE_OF_BROTHER_OF_MOTHER -> "🧑️"
         RELATION_TYPE_BROTHER, RELATION_TYPE_SON -> "👦️"
-        RELATION_TYPE_SISTER -> "️️👧️"
-        RELATION_TYPE_HUSBAND, RELATION_TYPE_SON_IN_LAW -> "🤵🏻‍♂️"
-        RELATION_TYPE_WIFE, RELATION_TYPE_DAUGHTER_IN_LAW,RELATION_TYPE_DAUGHTER -> "👩🏻‍"
+        RELATION_TYPE_SISTER, RELATION_TYPE_WIFE_OF_BROTHER -> "️️👧️"
+        RELATION_TYPE_HUSBAND, RELATION_TYPE_SON_IN_LAW,
+        RELATION_TYPE_ELDER_BROTHER_OF_FATHER, RELATION_TYPE_YOUNGER_BROTHER_OF_FATHER, RELATION_TYPE_HUSBAND_OF_SISTER_OF_FATHER,
+        RELATION_TYPE_BROTHER_OF_MOTHER,RELATION_TYPE_HUSBAND_OF_SISTER_OF_MOTHER, RELATION_TYPE_HUSBAND_OF_SISTER -> "🤵🏻‍♂️"
+        RELATION_TYPE_WIFE, RELATION_TYPE_DAUGHTER_IN_LAW, RELATION_TYPE_DAUGHTER -> "👩🏻‍"
         RELATION_TYPE_GRANDFATHER_F, RELATION_TYPE_GRANDFATHER_M -> "👴"
         RELATION_TYPE_GRANDMOTHER_F, RELATION_TYPE_GRANDMOTHER_M -> "👵"
         else -> ""
     }
 }
-
-fun String.getSpouseRelation(): String {
-    return when(this) {
-        RELATION_TYPE_SON -> RELATION_TYPE_DAUGHTER_IN_LAW
-        RELATION_TYPE_DAUGHTER -> RELATION_TYPE_SON_IN_LAW
-        else -> ""
-    }
-}
-
-
 
 
 // Helper function to extract the last word (surname) from a full name string
@@ -175,15 +166,35 @@ fun formatIsoDate(dateString: String): String {
 }
 
 fun calculateAgeFromDob(dobString: String): Int {
-    logger("Utils", "calculateAgeFromDob for dob: $dobString")
     return try {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH)
         val dob = LocalDate.parse(dobString, formatter)
         val today = LocalDate.now()
-        Period.between(dob, today).years
+        val years = Period.between(dob, today).years
+        logger("Utils", "calculateAgeFromDob for dob: $dobString is years: $years")
+        years
     } catch (e: Exception) {
         0 // Return 0 if parsing fails
     }
+}
+
+
+fun String.isElderOne(dob2: String): Boolean {
+    logger("Utils", "isElderOne for dob1: $this, dob2: $dob2")
+    val isElder = calculateAgeFromDob(this) > calculateAgeFromDob(dob2)
+    logger("Utils", "dob1 isElderOne: $isElder")
+    return isElder
+}
+
+fun String.toHindiReadableDate(): String {
+    val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val outputFormatter = DateTimeFormatter.ofPattern(
+        "d MMMM yyyy",
+        Locale("hi", "IN")
+    )
+
+    val date = LocalDate.parse(this, inputFormatter)
+    return date.format(outputFormatter)
 }
 
 
@@ -211,6 +222,7 @@ data class RelationFormState(
     val relation: String = "",
     val relatedToMemberId: Int = -1,
     val relatedToFullName: String = "",
+    val dom: String = "" // Date of marriage in case of spouse relation
 )
 
 

@@ -14,27 +14,30 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import com.pratik.learning.familyTree.presentation.screen.AboutAppScreen
 import com.pratik.learning.familyTree.presentation.screen.AddMemberScreen
 import com.pratik.learning.familyTree.presentation.screen.AddRelationScreen
+import com.pratik.learning.familyTree.presentation.screen.AdminScreen
 import com.pratik.learning.familyTree.presentation.screen.AncestryScreen
 import com.pratik.learning.familyTree.presentation.screen.MemberDetailsScreen
 import com.pratik.learning.familyTree.presentation.screen.EditMemberScreen
 import com.pratik.learning.familyTree.presentation.screen.MemberCompareScreen
 import com.pratik.learning.familyTree.presentation.screen.MemberTimelineScreen
+import com.pratik.learning.familyTree.presentation.screen.MySpaceScreen
 import com.pratik.learning.familyTree.presentation.screen.SplashScreen
+import com.pratik.learning.familyTree.presentation.viewmodel.AppViewModel
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
 import com.pratik.learning.familyTree.presentation.viewmodel.SplashViewModel
 import com.pratik.learning.familyTree.utils.sharedViewModel
 
 @Composable
-fun AppNavigation(navController: NavHostController = rememberNavController()) {
+fun AppNavigation(navController: NavHostController = rememberNavController(), appVM: AppViewModel) {
     NavHost(
         navController = navController,
         startDestination = SplashRoute
     ) {
         composable<SplashRoute> {
-
             val vm = hiltViewModel<SplashViewModel>()
             SplashScreen(vm, navController)
         }
@@ -56,7 +59,8 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 ////                    }
 //                },
                 navController,
-                viewModel = membersViewModel
+                viewModel = membersViewModel,
+                appVM = appVM
             )
         }
         navigation<MemberDetailsGraph>(startDestination = MemberDetailsRoute(memberId = 0)) {
@@ -65,7 +69,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 val membersViewModel =
                     backStackEntry.sharedViewModel<MemberDetailsViewModel>(navController)
                 membersViewModel.memberId = memberId.memberId
-                MemberDetailsScreen(navController,membersViewModel)
+                MemberDetailsScreen(navController, membersViewModel, appVM = appVM)
             }
 
             composable<AncestryRoute> { backStackEntry ->
@@ -130,6 +134,15 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                     backStackEntry.sharedViewModel<MemberDetailsViewModel>(navController)
                 membersDetailsViewModel.memberId = memberId.memberId
                 MemberTimelineScreen(membersDetailsViewModel)
+            }
+            composable<Admin> { backStackEntry ->
+                AdminScreen(navController = navController, appVM = appVM)
+            }
+            composable<MySpace> { backStackEntry ->
+                MySpaceScreen(appVM = appVM, navController = navController)
+            }
+            composable<About> { backStackEntry ->
+                AboutAppScreen(appVM = appVM)
             }
         }
     }

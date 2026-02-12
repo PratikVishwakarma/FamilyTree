@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [FamilyRelation::class, FamilyMember::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -36,6 +36,12 @@ abstract class FamilyTreeDatabase : RoomDatabase() {
                 // Add new columns to existing topics table
                 db.execSQL("ALTER TABLE members ADD COLUMN isNewEntry INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE relations ADD COLUMN isNewEntry INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+        val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add new columns to existing topics table
+                db.execSQL("ALTER TABLE relations ADD COLUMN dom TEXT NOT NULL DEFAULT ''")
             }
         }
     }

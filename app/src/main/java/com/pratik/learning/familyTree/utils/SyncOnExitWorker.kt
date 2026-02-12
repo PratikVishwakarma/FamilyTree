@@ -17,9 +17,6 @@ class SyncOnExitWorker(val context: Context, params: WorkerParameters): Coroutin
                 return Result.success()
             }
 
-            val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val activeNetwork = cm.activeNetworkInfo
-            logger("SyncWorker", "Network connected: ${activeNetwork?.isConnected}")
             repository.syncDataToFirebase()
             setIsDataUpdateRequired(context, false)
             Result.success()

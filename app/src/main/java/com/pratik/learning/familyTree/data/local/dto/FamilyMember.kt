@@ -53,8 +53,8 @@ data class MemberWithFather(
     val husbandFullName: String?
 )
 @Keep
-data class ChildWithSpouseDto(
-    @Embedded val child: FamilyMember,
+data class MemberWithSpouseDto(
+    @Embedded val innerMember: FamilyMember,
     val spouseId: Int?,
     val spouseFullName: String?
 )
@@ -93,14 +93,17 @@ data class DescendantNode(
 @Keep
 data class MemberRelationAR(
     var member: FamilyMember? = null,
-    val parents: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
     var spouse: Pair<String, FamilyMember>? = null,
+    val parents: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
     val inLaws: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
-    val siblings: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
-    val children: ArrayList<Pair<String, ChildWithSpouseDto>> = arrayListOf(),
+    val siblings: ArrayList<Pair<String, MemberWithSpouseDto>> = arrayListOf(),
+    val spouseSiblings: ArrayList<Pair<String, MemberWithSpouseDto>> = arrayListOf(),
+    val children: ArrayList<Pair<String, MemberWithSpouseDto>> = arrayListOf(),
     val grandchildren: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
     val grandParentsFather: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
     val grandParentsMother: ArrayList<Pair<String, FamilyMember>> = arrayListOf(),
+    val uncleAuntFatherSide: ArrayList<Pair<String, MemberWithSpouseDto>> = arrayListOf(),
+    val uncleAuntMotherSide: ArrayList<Pair<String, MemberWithSpouseDto>> = arrayListOf(),
 )
 
 
@@ -119,5 +122,12 @@ data class TimelineEvent(
     val title: String,
     val subtitle: String,
     val date: String
+)
+
+@Keep
+data class AncestryLevel(
+    val level: Int,
+    val name: String,
+    val relation: String
 )
 

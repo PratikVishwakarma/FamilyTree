@@ -1,6 +1,5 @@
 package com.pratik.learning.familyTree.data.local.dao
 
-import android.database.sqlite.SQLiteConstraintException
 import android.util.Log
 import androidx.paging.PagingSource
 import androidx.room.Dao
@@ -10,19 +9,18 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.pratik.learning.familyTree.data.local.dto.ChildWithSpouseDto
+import com.pratik.learning.familyTree.data.local.dto.MemberWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.FamilyRelation
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 @Dao
 interface FamilyTreeDao {
 
     // --- MEMBER OPERATIONS ---
     @Query("SELECT * FROM members ORDER BY memberId DESC")
-    fun getAllMembersForServer():List<FamilyMember>
+    fun getAllMembersForServer(): List<FamilyMember>
 
     @Query("SELECT * FROM relations")
     fun getAllRelationsForServer(): List<FamilyRelation>
@@ -41,7 +39,10 @@ interface FamilyTreeDao {
         members: List<FamilyMember>,
         relations: List<FamilyRelation>
     ) {
-        Log.w("Sync", "🚀 Starting sync with ${members.size} members and ${relations.size} relations")
+        Log.w(
+            "Sync",
+            "🚀 Starting sync with ${members.size} members and ${relations.size} relations"
+        )
 
         // --- Step 1: Fetch current local data
         val localMembers = getAllMembersForServer()
@@ -61,7 +62,10 @@ interface FamilyTreeDao {
                 updateMember(member.copy(isNewEntry = false))
                 Log.i("Sync", "🟡 Updated member ${member.fullName} (ID=${member.memberId})")
             } else {
-                Log.d("Sync", "⚪ Skipped unchanged member ${member.fullName} (ID=${member.memberId})")
+                Log.d(
+                    "Sync",
+                    "⚪ Skipped unchanged member ${member.fullName} (ID=${member.memberId})"
+                )
             }
         }
 
@@ -71,7 +75,10 @@ interface FamilyTreeDao {
         }
         if (toDeleteMembers.isNotEmpty()) {
             deleteMembers(toDeleteMembers)
-            Log.w("Sync", "🔴 Deleted ${toDeleteMembers.size} members missing on server (non-new entries only)")
+            Log.w(
+                "Sync",
+                "🔴 Deleted ${toDeleteMembers.size} members missing on server (non-new entries only)"
+            )
         }
 
         // --- Step 5: Handle relations
@@ -83,15 +90,22 @@ interface FamilyTreeDao {
         }.toSet()
 
         for (relation in relations) {
-            val key = Triple(relation.relatesToMemberId, relation.relatedMemberId, relation.relationType)
+            val key =
+                Triple(relation.relatesToMemberId, relation.relatedMemberId, relation.relationType)
             val local = localRelationMap[key]
 
             if (local == null) {
                 insertRelation(relation.copy(isNewEntry = false))
-                Log.i("Sync", "🟢 Inserted new relation ${relation.relationType} (${relation.relatesToMemberId}→${relation.relatedMemberId})")
+                Log.i(
+                    "Sync",
+                    "🟢 Inserted new relation ${relation.relationType} (${relation.relatesToMemberId}→${relation.relatedMemberId})"
+                )
             } else if (relation.updatedAt.toLong() > local.updatedAt.toLong()) {
                 updateRelation(relation.copy(isNewEntry = false))
-                Log.i("Sync", "🟡 Updated relation ${relation.relationType} (${relation.relatesToMemberId}→${relation.relatedMemberId})")
+                Log.i(
+                    "Sync",
+                    "🟡 Updated relation ${relation.relationType} (${relation.relatesToMemberId}→${relation.relatedMemberId})"
+                )
             } else {
                 Log.d("Sync", "⚪ Skipped unchanged relation ${relation.relationType}")
             }
@@ -99,12 +113,19 @@ interface FamilyTreeDao {
 
         // --- Step 6: Delete local relations missing on server (but only if not isNewEntry)
         val relationsToDelete = localRelations.filter {
-            Triple(it.relatesToMemberId, it.relatedMemberId, it.relationType) !in serverRelationKeys &&
+            Triple(
+                it.relatesToMemberId,
+                it.relatedMemberId,
+                it.relationType
+            ) !in serverRelationKeys &&
                     !it.isNewEntry
         }
         if (relationsToDelete.isNotEmpty()) {
             deleteRelations(relationsToDelete)
-            Log.w("Sync", "🔴 Deleted ${relationsToDelete.size} relations missing on server (non-new entries only)")
+            Log.w(
+                "Sync",
+                "🔴 Deleted ${relationsToDelete.size} relations missing on server (non-new entries only)"
+            )
         }
 
         // --- Step 7: Reset isNewEntry flag after successful sync
@@ -124,11 +145,13 @@ interface FamilyTreeDao {
     @Query("UPDATE relations SET isNewEntry = 0 WHERE isNewEntry = 1")
     suspend fun markAllRelationsAsSynced()
 
-    @Query("""
+    @Query(
+        """
         DELETE FROM relations 
         WHERE relatesToMemberId = :memberId 
            OR relatedMemberId = :memberId
-    """)
+    """
+    )
     suspend fun deleteRelationsForMember(memberId: Int)
 
     @Transaction
@@ -161,12 +184,14 @@ interface FamilyTreeDao {
     @Update
     suspend fun updateMember(member: FamilyMember)
 
-    @Query("""
+    @Query(
+        """
     UPDATE members 
     SET gotra = :gotra, 
         updatedAt = :updatedAt 
     WHERE memberId = :memberId
-""")
+"""
+    )
     suspend fun updateGotra(
         memberId: Int,
         gotra: String,
@@ -228,7 +253,8 @@ interface FamilyTreeDao {
      * Retrieves a single parent of a specific type (e.g., 'Father' or 'Mother') for a child.
      * This is crucial for isolating the paternal and maternal lines for the DualAncestorTree.
      */
-    @Query("""
+    @Query(
+        """
         SELECT 
             m2.*
         FROM 
@@ -239,14 +265,16 @@ interface FamilyTreeDao {
             r.relatesToMemberId = :childId 
             AND r.relationType = :relationType
         LIMIT 1
-    """)
+    """
+    )
     suspend fun getImmediateParentByType(childId: Int, relationType: String): FamilyMember?
 
     /**
      * Retrieves the spouse of a given member ID.
      * This query looks for a reciprocal 'Husband' or 'Wife' relation.
      */
-    @Query("""
+    @Query(
+        """
         SELECT 
             m2.*
         FROM 
@@ -257,14 +285,16 @@ interface FamilyTreeDao {
             r.relatesToMemberId = :memberId 
             AND r.relationType IN ('Husband', 'Wife')
         LIMIT 1
-    """)
+    """
+    )
     suspend fun getSpouse(memberId: Int): FamilyMember?
 
     /**
      * Retrieves the children of a given member ID.
      * This query looks for a reciprocal 'Son' or 'Daughter' relation.
      */
-    @Query("""
+    @Query(
+        """
         SELECT 
             m2.*
         FROM 
@@ -276,11 +306,13 @@ interface FamilyTreeDao {
             AND r.relationType IN ('Father', 'Mother')
         ORDER BY
             m2.dob ASC
-    """)
+    """
+    )
     suspend fun getChildren(memberId: Int): List<FamilyMember>?
 
 
-    @Query("""
+    @Query(
+        """
     SELECT 
         c.*, 
         s.fullName AS spouseFullName, 
@@ -309,8 +341,9 @@ interface FamilyTreeDao {
         c.memberId
     ORDER BY 
         c.dob ASC
-""")
-    suspend fun getChildrenWithSpouse(memberId: Int): List<ChildWithSpouseDto>
+"""
+    )
+    suspend fun getChildrenWithSpouse(memberId: Int): List<MemberWithSpouseDto>
 
 //
 //@Query("""
@@ -344,8 +377,8 @@ interface FamilyTreeDao {
 //""")
 
 
-
-    @Query("""
+    @Query(
+        """
 SELECT 
     m1.*,
     mFather.fullName AS fatherFullName,
@@ -398,7 +431,67 @@ ORDER BY
     CASE WHEN :sortBy = 'DOB' THEN m1.dob END ASC,
     CASE WHEN :sortBy = 'DOB' THEN m1.dob END DESC,
     m1.memberId DESC
-""")
+"""
+    )
 
-    fun getAllMembersBySearchQuery(name: String, isUnmarried: Boolean, sortBy: String = "IDDOWN"): PagingSource<Int, MemberWithFather>
+    fun getAllMembersBySearchQuery(
+        name: String,
+        isUnmarried: Boolean,
+        sortBy: String = "IDDOWN"
+    ): PagingSource<Int, MemberWithFather>
+
+
+    @Query(
+        """
+SELECT 
+    m1.*,
+    mFather.fullName AS fatherFullName,
+    mHusband.fullName AS husbandFullName
+
+FROM members m1
+
+-- Father join
+LEFT JOIN relations rFather
+    ON rFather.relatesToMemberId = m1.memberId 
+    AND rFather.relationType = 'Father'
+LEFT JOIN members mFather
+    ON mFather.memberId = rFather.relatedMemberId
+
+-- Husband join (for female only)
+LEFT JOIN relations rHusband
+    ON (
+        (m1.gender = 'F' AND rHusband.relatesToMemberId = m1.memberId AND rHusband.relationType = 'Husband')
+        OR (m1.gender = 'F' AND rHusband.relatedMemberId = m1.memberId AND rHusband.relationType = 'Wife')
+    )
+LEFT JOIN members mHusband
+    ON (
+        CASE 
+            WHEN rHusband.relatesToMemberId = m1.memberId THEN rHusband.relatedMemberId
+            ELSE rHusband.relatesToMemberId
+        END
+    ) = mHusband.memberId
+
+WHERE
+    m1.memberId IN (:ids)
+    AND m1.fullName LIKE '%' || :name || '%'
+
+GROUP BY 
+    m1.memberId
+
+ORDER BY
+    CASE WHEN :sortBy = 'NAMEUP' THEN m1.fullName END ASC,
+    CASE WHEN :sortBy = 'NAMEDOWN' THEN m1.fullName END DESC,
+    CASE WHEN :sortBy = 'IDUP' THEN m1.memberId END ASC,
+    CASE WHEN :sortBy = 'IDDOWN' THEN m1.memberId END DESC,
+    CASE WHEN :sortBy = 'DOB' THEN m1.dob END ASC,
+    CASE WHEN :sortBy = 'DOB' THEN m1.dob END DESC,
+    m1.memberId DESC
+"""
+    )
+    fun getMyFavMembersBySearchQuery(
+        name: String,
+        ids: List<Int>,
+        sortBy: String = "IDDOWN"
+    ): PagingSource<Int, MemberWithFather>
+
 }

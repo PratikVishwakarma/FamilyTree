@@ -46,7 +46,7 @@ import javax.inject.Inject
 class MembersViewModel @Inject constructor(
     private val familyTreeRepository: FamilyTreeRepository,
     @ApplicationContext val context: Context
-) : ViewModel() {
+) : BaseViewModel() {
 
     var relationType = ""
 

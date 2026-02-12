@@ -19,8 +19,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.pratik.learning.familyTree.FamilyTreeApp.Companion.isAdmin
 import com.pratik.learning.familyTree.R
 import com.pratik.learning.familyTree.navigation.AddRelationRoute
 import com.pratik.learning.familyTree.navigation.AncestryRoute
@@ -35,19 +38,21 @@ import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.MemberInfoSection
 import com.pratik.learning.familyTree.presentation.component.RelationGroup
 import com.pratik.learning.familyTree.presentation.component.RelationGroupWithSpouse
+import com.pratik.learning.familyTree.presentation.viewmodel.AppViewModel
 import com.pratik.learning.familyTree.presentation.viewmodel.MemberDetailsViewModel
+import com.pratik.learning.familyTree.utils.SyncPrefs.isMemberInMyFavListFlow
 import com.pratik.learning.familyTree.utils.inHindi
-import com.pratik.learning.familyTree.utils.isAdmin
 import com.pratik.learning.familyTree.utils.logger
 
 @Composable
-fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsViewModel) {
+fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsViewModel, appVM: AppViewModel) {
 
     val onMemberClick: (Int) -> Unit = { memberId ->
         if (memberId != viewModel.memberId) {
             navController.navigate(route = MemberDetailsRoute(memberId))
         }
     }
+
     LaunchedEffect(Unit) {
         logger("MemberDetailsScreen LaunchedEffect")
         viewModel.fetchDetails()
@@ -56,6 +61,9 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
     val member by viewModel.member.collectAsState()
     val relatives by viewModel.relatives.collectAsState()
     val dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+
+    val isFav by isMemberInMyFavListFlow(LocalContext.current, viewModel.memberId)
+        .collectAsStateWithLifecycle(initialValue = false)
     Container(
         title = "Member Details".inHindi(),
         rightButton = {
@@ -99,7 +107,9 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
             // 🧍 Member Info
             // Member Info Section
             item {
-                MemberInfoSection(member)
+                MemberInfoSection(member, isFav, {
+                    viewModel.addRemoveFromFavList(isFav)
+                })
                 HorizontalDivider(
                     color = dividerColor,
                     thickness = 1.dp,
@@ -115,7 +125,7 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
                     relatives.spouse?.let { listOf(it) } ?: emptyList(),
                     onMemberClick)
                 RelationGroup("In-Laws", relatives.inLaws.distinct(), onMemberClick)
-                RelationGroup("Siblings", relatives.siblings.distinct(), onMemberClick)
+                RelationGroupWithSpouse("Siblings", relatives.siblings.distinct(), onMemberClick)
                 RelationGroupWithSpouse("Children", relatives.children.distinct(), onMemberClick)
                 RelationGroup("Grandchildren", relatives.grandchildren.distinct(), onMemberClick)
                 RelationGroup("Grandparents ", relatives.grandParentsFather.distinct(), onMemberClick)
@@ -218,7 +228,7 @@ fun MemberDetailsScreen(navController: NavController, viewModel: MemberDetailsVi
                     ) {
                         Text("❌ "+"Delete Member".inHindi())
                     }
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(12.dp))
                 }
             }
         }

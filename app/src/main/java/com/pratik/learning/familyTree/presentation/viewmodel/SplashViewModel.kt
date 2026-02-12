@@ -3,11 +3,11 @@ package com.pratik.learning.familyTree.presentation.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pratik.learning.familyTree.FamilyTreeApp.Companion.isAdmin
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
 import com.pratik.learning.familyTree.utils.SyncPrefs.getIsDataUpdateRequired
 import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
 import com.pratik.learning.familyTree.utils.SyncPrefs.shouldSync
-import com.pratik.learning.familyTree.utils.isAdmin
 import com.pratik.learning.familyTree.utils.logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,7 +23,7 @@ import javax.inject.Inject
 class SplashViewModel @Inject constructor(
     private val familyTreeRepository: FamilyTreeRepository,
     @ApplicationContext val context: Context
-) : ViewModel() {
+) : BaseViewModel() {
 
     var relationType = ""
 

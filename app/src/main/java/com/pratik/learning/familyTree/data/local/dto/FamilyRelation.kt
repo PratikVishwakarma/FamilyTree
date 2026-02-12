@@ -41,6 +41,9 @@ data class FamilyRelation(
     // Type of relation (e.g., "Father", "Mother", "Husband/Wife")
     val relationType: String,
 
+    // Date of marriage, if relation type id (spouse "Husband/Wife")
+    val dom: String = "",
+
     val updatedAt: String = System.currentTimeMillis().toString(),
     val updatedBy: String = "",
     var isNewEntry: Boolean = false

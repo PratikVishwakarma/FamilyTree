@@ -1,6 +1,9 @@
 package com.pratik.learning.familyTree.di
 
 import android.content.Context
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 import com.google.firebase.storage.FirebaseStorage
 import com.pratik.learning.familyTree.data.local.dao.FamilyTreeDao
 import com.pratik.learning.familyTree.data.repository.FamilyTreeRepository
@@ -20,6 +23,12 @@ object RepositoryModule {
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage {
         return FirebaseStorage.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth {
+        return Firebase.auth
     }
 
     @Provides

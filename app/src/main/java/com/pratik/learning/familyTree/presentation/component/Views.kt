@@ -4,9 +4,11 @@ import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -62,7 +64,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -106,16 +108,18 @@ import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pratik.learning.familyTree.R
-import com.pratik.learning.familyTree.data.local.dto.ChildWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
 import com.pratik.learning.familyTree.data.local.dto.MemberWithFather
+import com.pratik.learning.familyTree.data.local.dto.MemberWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.TimelineEvent
 import com.pratik.learning.familyTree.data.local.dto.TimelineEventType
+import com.pratik.learning.familyTree.presentation.FancyBottomItem
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
 import com.pratik.learning.familyTree.utils.MemberFormState
 import com.pratik.learning.familyTree.utils.calculateAgeFromDob
 import com.pratik.learning.familyTree.utils.formatIsoDate
 import com.pratik.learning.familyTree.utils.getIcon
+import com.pratik.learning.familyTree.utils.getRelationShipInHindiWithIcon
 import com.pratik.learning.familyTree.utils.getSpouseRelation
 import com.pratik.learning.familyTree.utils.inHindi
 import com.pratik.learning.familyTree.utils.logger
@@ -164,6 +168,7 @@ fun Container(
                 // This modifier pushes the content down by the height of the status bar
                 modifier = modifier
                     .fillMaxWidth()
+                    .height(80.dp)
                     .background(MaterialTheme.colorScheme.primaryContainer) // Use a background color
                     .windowInsetsPadding(WindowInsets.statusBars) // <-- THE CRITICAL MODIFIER
                     .padding(paddingValues), // Add horizontal padding for content
@@ -192,6 +197,7 @@ fun Container(
 fun MemberSmallTile(
     title: String,
     description: String,
+    relation: String = "",
     onSinglePress: () -> Unit,
     onLongPress: () -> Unit
 ) {
@@ -227,12 +233,25 @@ fun MemberSmallTile(
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Row {
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    if (relation.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "(${relation.inHindi()})",
+                            style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = description,
@@ -265,7 +284,7 @@ fun InfoRow(icon: String, text: String, style: TextStyle, modifier: Modifier) {
 }
 
 @Composable
-fun MemberInfoSection(member: MemberFormState) {
+fun MemberInfoSection(member: MemberFormState, isFav: Boolean? = null, onFavClick: (() -> Unit)? = null) {
     val iconModifier = Modifier
         .size(18.dp)
         .padding(end = 6.dp)
@@ -278,10 +297,25 @@ fun MemberInfoSection(member: MemberFormState) {
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
-        Text(
-            text = member.fullName,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
-        )
+        Row {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = member.fullName,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+            )
+            isFav?.let {
+                Spacer(Modifier.width(12.dp))
+                Image(
+                    painter = painterResource(id = if (it) R.drawable.ic_liked else R.drawable.ic_like) , // add icon in drawable
+                    contentDescription = "No Internet",
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clickable {
+                            onFavClick?.invoke()
+                        }
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(8.dp))
 
         InfoRow("🌳", "${"Gotra".inHindi()}: ${member.gotra}", textStyle, iconModifier)
@@ -445,6 +479,28 @@ fun MemberInfoOverlay(
     }
 }
 
+@Composable
+fun RelationGroupDivider(title: String) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        HorizontalDivider(
+            modifier = Modifier.padding(end = 12.dp).weight(1f),
+            thickness = 0.5.dp,
+            color =  MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        )
+        Text(
+            text = title.inHindi(),
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        )
+        HorizontalDivider(
+            modifier = Modifier.padding(start = 22.dp).weight(1f),
+            thickness = 0.5.dp,
+            color =  MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        )
+    }
+}
 
 @Composable
 fun RelationGroup(
@@ -460,7 +516,7 @@ fun RelationGroup(
 
     Column(modifier = Modifier.padding(vertical = 6.dp)) {
         Text(
-            text = title,
+            text = title.inHindi(),
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = labelColor
@@ -489,10 +545,10 @@ fun RelationGroup(
 @Composable
 fun RelationGroupWithSpouse(
     title: String,
-    members: List<Pair<String, ChildWithSpouseDto>>,
+    members: List<Pair<String, MemberWithSpouseDto>>,
     onMemberClick: (Int) -> Unit
 ) {
-    println("RelationGroup: $title  members: $members")
+//    println("RelationGroup: $title  members: $members")
     if (members.isEmpty()) return
 
     val dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
@@ -500,19 +556,19 @@ fun RelationGroupWithSpouse(
 
     Column(modifier = Modifier.padding(vertical = 6.dp)) {
         Text(
-            text = title,
+            text = title.inHindi(),
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = labelColor
             )
         )
         Spacer(modifier = Modifier.height(4.dp))
-        members.sortedBy { it.second.child.dob }.forEachIndexed { index, member ->
+        members.sortedBy { it.second.innerMember.dob }.forEachIndexed { index, member ->
             RelationItem(
                 relation = member.first,
-                memberName = member.second.child.fullName,
-                city = member.second.child.city,
-                memberId = member.second.child.memberId,
+                memberName = member.second.innerMember.fullName,
+                city = member.second.innerMember.city,
+                memberId = member.second.innerMember.memberId,
                 onMemberClick
             )
             member.second.spouseId?.let { spouseId ->
@@ -520,7 +576,7 @@ fun RelationGroupWithSpouse(
                 RelationItem(
                     relation = member.first.getSpouseRelation(),
                     memberName = member.second.spouseFullName ?: "",
-                    city = member.second.child.city,
+                    city = member.second.innerMember.city,
                     memberId = spouseId,
                     onMemberClick
                 )
@@ -928,7 +984,7 @@ fun CommonRelativesItem(
 
             Column {
                 Text(
-                    text = "${getIcon(firstRelation)} ${firstRelation.inHindi()}",
+                    text = firstRelation.getRelationShipInHindiWithIcon(),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -940,7 +996,7 @@ fun CommonRelativesItem(
                 )
 
                 Text(
-                    text = "${getIcon(secondRelation)} ${secondRelation.inHindi()}",
+                    text = secondRelation.getRelationShipInHindiWithIcon(),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -987,7 +1043,7 @@ fun CompareDivider(relatives: Map<FamilyMember, Pair<String, String>>) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "${getIcon(it.value.first)} ${it.value.first.inHindi()}",
+                                text = it.value.first.getRelationShipInHindiWithIcon(),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -1014,7 +1070,7 @@ fun CompareDivider(relatives: Map<FamilyMember, Pair<String, String>>) {
                                 )
                             }
                             Text(
-                                text = "${it.value.second.inHindi()} ${getIcon(it.value.second)}",
+                                text = it.value.second.getRelationShipInHindiWithIcon(),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.secondary
                             )
@@ -1167,7 +1223,7 @@ private fun CarouselCard(
         ) {
             logger("relations card $relations")
             Text(
-                text = "${getIcon(relations.first)} ${relations.first.inHindi()}",
+                text = relations.first.getRelationShipInHindiWithIcon(),
                 style = MaterialTheme.typography.titleMedium,
             )
 
@@ -1178,7 +1234,7 @@ private fun CarouselCard(
             )
 
             Text(
-                text = "${getIcon(relations.second)} ${relations.second.inHindi()}",
+                text = relations.second.getRelationShipInHindiWithIcon(),
                 style = MaterialTheme.typography.titleMedium,
             )
         }
@@ -1328,6 +1384,39 @@ fun FilterChip(
             .border(1.dp, borderColor, RoundedCornerShape(14.dp))
             .clickable { onClick(value) }
             .padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = textColor,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+
+
+@Composable
+fun RectangleButton(
+    modifier: Modifier = Modifier,
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit = {}
+) {
+    val bgColor =
+        if (selected) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surfaceVariant
+
+    val textColor =
+        if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+        else MaterialTheme.colorScheme.onSurfaceVariant
+
+    Box(
+        modifier = modifier
+            .background(bgColor)
+            .clickable { onClick() }
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -1501,6 +1590,107 @@ fun eventDotColor(
         TimelineEventType.DEATH ->
             colorScheme.outline
     }
+
+
+@Composable
+fun FancyBottomBar(
+    items: List<FancyBottomItem>,
+    selectedIndex: Int,
+    onItemSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .background(MaterialTheme.colorScheme.primaryContainer)
+    ) {
+//         Sliding indicator
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEachIndexed { index, item ->
+                FancyBottomItemView(
+                    item = item,
+                    selected = index == selectedIndex,
+                    index = index,
+                    centerIndex = items.size / 2,
+                    onClick = { onItemSelected(index) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FancyBottomItemView(
+    item: FancyBottomItem,
+    index: Int,
+    centerIndex: Int,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val isCenter = index == centerIndex
+    val scale by animateFloatAsState(
+        targetValue = when {
+            selected && isCenter -> 1.45f
+            selected -> 1.25f
+            isCenter -> 1.15f
+            else -> 1f
+        },
+        animationSpec = spring(
+            dampingRatio = 0.75f,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "scale"
+    )
+
+    val color by animateColorAsState(
+        targetValue = if (selected)
+            MaterialTheme.colorScheme.primary
+        else
+            MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(250),
+        label = "color"
+    )
+
+    val backgroundAlpha by animateFloatAsState(
+        targetValue = if (selected) 0.18f else 0f,
+        animationSpec = tween(220),
+        label = "bgAlpha"
+    )
+
+    Column(
+        modifier = Modifier
+            .width(72.dp)
+            .fillMaxHeight()
+            .background(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = backgroundAlpha),
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = item.icon,
+            contentDescription = item.label,
+            tint = color,
+            modifier = Modifier
+                .size(24.dp)
+                .scale(scale)
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = item.label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color
+        )
+    }
+}
 
 
 @Preview(showBackground = false)

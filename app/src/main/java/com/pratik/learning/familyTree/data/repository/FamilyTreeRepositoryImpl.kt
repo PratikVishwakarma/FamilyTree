@@ -12,7 +12,8 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.pratik.learning.familyTree.data.local.dao.FamilyTreeDao
 import com.pratik.learning.familyTree.data.local.dto.AncestorNode
-import com.pratik.learning.familyTree.data.local.dto.ChildWithSpouseDto
+import com.pratik.learning.familyTree.data.local.dto.AncestryLevel
+import com.pratik.learning.familyTree.data.local.dto.MemberWithSpouseDto
 import com.pratik.learning.familyTree.data.local.dto.DescendantNode
 import com.pratik.learning.familyTree.data.local.dto.DualAncestorTree
 import com.pratik.learning.familyTree.data.local.dto.FamilyMember
@@ -30,7 +31,7 @@ import com.pratik.learning.familyTree.utils.GENDER_TYPE_FEMALE
 import com.pratik.learning.familyTree.utils.GENDER_TYPE_MALE
 import com.pratik.learning.familyTree.utils.HiText
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_BROTHER
-import com.pratik.learning.familyTree.utils.RELATION_TYPE_BROTHER_OF_HUSBAND
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_YOUNGER_BROTHER_OF_HUSBAND
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_BROTHER_OF_MOTHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_BROTHER_OF_WIFI
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_COUSIN_BROTHER
@@ -43,6 +44,7 @@ import com.pratik.learning.familyTree.utils.RELATION_TYPE_DAUGHTER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_DAUGHTER_OF_BROTHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_DAUGHTER_OF_SISTER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_ELDER_BROTHER_OF_FATHER
+import com.pratik.learning.familyTree.utils.RELATION_TYPE_ELDER_BROTHER_OF_HUSBAND
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_FATHER
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_FATHER_IN_LAW
 import com.pratik.learning.familyTree.utils.RELATION_TYPE_GRANDCHILD
@@ -79,9 +81,11 @@ import com.pratik.learning.familyTree.utils.RELATION_TYPE_YOUNGER_BROTHER_OF_FAT
 import com.pratik.learning.familyTree.utils.SyncPrefs.setIsDataUpdateRequired
 import com.pratik.learning.familyTree.utils.SyncPrefs.setLastSyncTime
 import com.pratik.learning.familyTree.utils.calculateAgeFromDob
+import com.pratik.learning.familyTree.utils.getCombinedName
 import com.pratik.learning.familyTree.utils.inHindi
+import com.pratik.learning.familyTree.utils.isElderOne
 import com.pratik.learning.familyTree.utils.logger
-import com.pratik.learning.familyTree.utils.relationTextInHindi
+import com.pratik.learning.familyTree.utils.toHindiReadableDate
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -186,7 +190,27 @@ class FamilyTreeRepositoryImpl(
                 pageSize = 50,
                 enablePlaceholders = false
             ),
-            pagingSourceFactory = { dao.getAllMembersBySearchQuery(name, filterMatrix.isUnmarried, filterMatrix.sortBy) }
+            pagingSourceFactory = {
+                dao.getAllMembersBySearchQuery(
+                    name,
+                    filterMatrix.isUnmarried,
+                    filterMatrix.sortBy
+                )
+            }
+        ).flow
+    }
+
+    override fun getPagedFavMembersForSearchByFilter(
+        name: String,
+        ids: List<Int>
+    ): Flow<PagingData<MemberWithFather>> {
+        logger("getPagedFavMembersForSearchByFilter Loading page with matched: $name and ids = $ids")
+        return Pager(
+            config = PagingConfig(
+                pageSize = 50,
+                enablePlaceholders = false
+            ),
+            pagingSourceFactory = { dao.getMyFavMembersBySearchQuery(name, ids) }
         ).flow
     }
 
@@ -196,14 +220,14 @@ class FamilyTreeRepositoryImpl(
     private suspend fun updateDescendantsGotra(memberId: Int, newGotra: String) {
         dao.getChildrenWithSpouse(memberId).forEach { child ->
             if (child.spouseId == null || child.spouseId == -1) {
-                logger("updateDescendantsGotra:: updating gotra for ${child.child.fullName} , newGotra = $newGotra")
-                updateDescendantsGotra(child.child.memberId, newGotra)
-                dao.updateGotra(child.child.memberId, newGotra)
+                logger("updateDescendantsGotra:: updating gotra for ${child.innerMember.fullName} , newGotra = $newGotra")
+                updateDescendantsGotra(child.innerMember.memberId, newGotra)
+                dao.updateGotra(child.innerMember.memberId, newGotra)
             } else {
-                if (child.child.gender == GENDER_TYPE_MALE) {
-                    logger("updateDescendantsGotra:: updating gotra for ${child.child.fullName}  || spouse = ${child.spouseFullName}, newGotra = $newGotra")
-                    updateDescendantsGotra(child.child.memberId, newGotra)
-                    dao.updateGotra(child.child.memberId, newGotra)
+                if (child.innerMember.gender == GENDER_TYPE_MALE) {
+                    logger("updateDescendantsGotra:: updating gotra for ${child.innerMember.fullName}  || spouse = ${child.spouseFullName}, newGotra = $newGotra")
+                    updateDescendantsGotra(child.innerMember.memberId, newGotra)
+                    dao.updateGotra(child.innerMember.memberId, newGotra)
                     dao.updateGotra(child.spouseId, newGotra)
                 }
             }
@@ -212,6 +236,37 @@ class FamilyTreeRepositoryImpl(
 
     // The complex, derived relationship logic (like reciprocal and inferred relations)
     // should live here or in a separate 'TreeLogicManager' service, not in the DAO.
+
+    private suspend fun getFatherAncestryWithLevel(
+        member: FamilyMember,
+        level: Int
+    ): List<AncestryLevel> {
+
+        val result = mutableListOf<AncestryLevel>()
+
+        val spouse = dao.getSpouse(member.memberId)
+
+        val father = dao.getImmediateParentByType(member.memberId, "Father")
+
+        // 1️⃣ First go up (recursively)
+        if (father != null) {
+            result += getFatherAncestryWithLevel(father, level + 1)
+        }
+
+        // 2️⃣ Then add current member (bottom-up collection)
+        val combinedName =
+            member.fullName.getCombinedName(spouse?.fullName ?: "")
+
+        val relation = getRelationWithMember(level + 1, true)
+
+        result += AncestryLevel(
+            level = level,
+            name = combinedName,
+            relation = relation
+        )
+
+        return result
+    }
 
     private suspend fun buildAncestryNode(
         member: FamilyMember,
@@ -375,7 +430,7 @@ class FamilyTreeRepositoryImpl(
         return dao.getChildren(memberId) ?: emptyList()
     }
 
-    override suspend fun getChildrenWithSpouse(memberId: Int): List<ChildWithSpouseDto> {
+    override suspend fun getChildrenWithSpouse(memberId: Int): List<MemberWithSpouseDto> {
         logger("getChildrenWithSpouse:: memberId = $memberId")
         return dao.getChildrenWithSpouse(memberId)
     }
@@ -499,11 +554,10 @@ class FamilyTreeRepositoryImpl(
     override suspend fun getMemberRelatives(memberId: Int): MemberRelationAR {
         logger("getMemberRelatives:: memberId = $memberId")
         val relatives = MemberRelationAR()
+        relatives.member = getMemberById(memberId)
         val relations = dao.getRelationsForMember(memberId).first()
         getRelations(memberId = memberId, relations = relations, relatives = relatives)
-        relatives.member = getMemberById(memberId)
         logger("getMemberRelatives:: member 2 = ${relatives.member}")
-        getMemberSmallBio(relatives)
         return relatives
     }
 
@@ -555,11 +609,11 @@ class FamilyTreeRepositoryImpl(
      */
     private fun findSiblingRelation(ctx: RelationContext): Pair<String, String>? =
         ctx.m1Rel.siblings
-            .firstOrNull { it.second.memberId == ctx.m2Id }
+            .firstOrNull { it.second.innerMember.memberId == ctx.m2Id }
             ?.let { (relM2ToM1, _) ->
                 val relM1ToM2 =
                     if (ctx.isM1Male) RELATION_TYPE_BROTHER else RELATION_TYPE_SISTER
-                relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+                relM1ToM2.inHindi() to relM2ToM1.inHindi()
             }
 
     /**
@@ -571,11 +625,11 @@ class FamilyTreeRepositoryImpl(
      */
     private fun findParentChildRelation(ctx: RelationContext): Pair<String, String>? =
         ctx.m1Rel.children
-            .firstOrNull { it.second.child.memberId == ctx.m2Id }
+            .firstOrNull { it.second.innerMember.memberId == ctx.m2Id }
             ?.let { (relM2ToM1, _) ->
                 val relM1ToM2 =
                     if (ctx.isM1Male) RELATION_TYPE_FATHER else RELATION_TYPE_MOTHER
-                relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+                relM1ToM2.inHindi() to relM2ToM1.inHindi()
             }
 
     /**
@@ -591,7 +645,7 @@ class FamilyTreeRepositoryImpl(
             ?.let { (relM2ToM1, _) ->
                 val relM1ToM2 =
                     if (ctx.isM1Male) RELATION_TYPE_SON else RELATION_TYPE_DAUGHTER
-                relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+                relM1ToM2.inHindi() to relM2ToM1.inHindi()
             }
 
     /**
@@ -617,7 +671,7 @@ class FamilyTreeRepositoryImpl(
                     else ->
                         if (ctx.isM1Male) RELATION_TYPE_GRANDCHILD else RELATION_TYPE_GRANDCHILD_F
                 }
-                relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+                relM1ToM2.inHindi() to relM2ToM1.inHindi()
             }
 
     /**
@@ -632,7 +686,7 @@ class FamilyTreeRepositoryImpl(
             ?.let { (relM1ToM2, _) ->
                 val relM2ToM1 =
                     if (ctx.isM2Male) RELATION_TYPE_GRANDCHILD else RELATION_TYPE_GRANDCHILD_F
-                relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+                relM1ToM2.inHindi() to relM2ToM1.inHindi()
             }
 
     /**
@@ -658,7 +712,7 @@ class FamilyTreeRepositoryImpl(
                     RELATION_TYPE_COUSIN_BROTHER_FATHER_SIDE
                 else RELATION_TYPE_COUSIN_SISTER_FATHER_SIDE
 
-                rel1.relationTextInHindi() to rel2.relationTextInHindi()
+                rel1.inHindi() to rel2.inHindi()
             }
             // mother side cousin
             commonGrandParent(ctx.m1Rel.grandParentsMother, ctx.m2Rel.grandParentsMother) -> {
@@ -670,7 +724,7 @@ class FamilyTreeRepositoryImpl(
                     RELATION_TYPE_COUSIN_BROTHER_MOTHER_SIDE
                 else RELATION_TYPE_COUSIN_SISTER_MOTHER_SIDE
 
-                rel1.relationTextInHindi() to rel2.relationTextInHindi()
+                rel1.inHindi() to rel2.inHindi()
             }
             // father/Mother side cousin
             commonGrandParent(
@@ -681,7 +735,7 @@ class FamilyTreeRepositoryImpl(
                     if (ctx.isM1Male) RELATION_TYPE_COUSIN_BROTHER else RELATION_TYPE_COUSIN_SISTER
                 val rel2 =
                     if (ctx.isM2Male) RELATION_TYPE_COUSIN_BROTHER else RELATION_TYPE_COUSIN_SISTER
-                rel1.relationTextInHindi() to rel2.relationTextInHindi()
+                rel1.inHindi() to rel2.inHindi()
             }
 
             else -> null
@@ -721,7 +775,7 @@ class FamilyTreeRepositoryImpl(
             }
         } ?: ""
         logger("getMembersBetweenRelations::findFatherSideUncleAuntRelation: Uncle/Aunt ↔ Nephew/Niece = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
     /* ---------- Uncle/Aunt Spouse ↔ Nephew/Niece (Father side) ----------
@@ -760,7 +814,7 @@ class FamilyTreeRepositoryImpl(
         } ?: ""
 
         logger("getMembersBetweenRelations::findFatherSideUncleAuntSpouseRelation: Uncle/Aunt ↔ Nephew/Niece = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
 
@@ -796,7 +850,7 @@ class FamilyTreeRepositoryImpl(
             }
         } ?: ""
         logger("getMembersBetweenRelations::findFatherSideNephewNieceRelation: nephew/niece = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
     /* ----------  Nephew/Niece ↔ Uncle/Aunt Spouse (Father side) ----------
@@ -835,7 +889,7 @@ class FamilyTreeRepositoryImpl(
         } ?: ""
 
         logger("getMembersBetweenRelations::findFatherSideNephewNieceSpouseRelation: Uncle/Aunt ↔ Nephew/Niece = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
     /* ---------- Uncle/Aunt ↔ Nephew/Niece (Mother side) ----------
@@ -860,7 +914,7 @@ class FamilyTreeRepositoryImpl(
             if (ctx.isM2Male) RELATION_TYPE_BROTHER_OF_MOTHER   // (mama)
             else RELATION_TYPE_SISTER_OF_MOTHER // (Mashi)
         logger("getMembersBetweenRelations::findMotherSideUncleAuntRelation: Uncle/Aunt ↔ Nephew/Niece (Mother Side) = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
     /* ---------- Uncle/Aunt Spouse ↔ Nephew/Niece (Mother side) ----------
@@ -886,7 +940,7 @@ class FamilyTreeRepositoryImpl(
             else RELATION_TYPE_WIFE_OF_BROTHER_OF_MOTHER // (Mami ji)
 
         logger("getMembersBetweenRelations::findMotherSideUncleAuntSpouseRelation: Uncle/Aunt ↔ Nephew/Niece = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
     /* ---------- Nephew/Niece ↔ Uncle/Aunt (Mother side) ----------
@@ -911,7 +965,7 @@ class FamilyTreeRepositoryImpl(
             if (ctx.isM2Male) RELATION_TYPE_SON_OF_SISTER   // (bhanja)
             else RELATION_TYPE_DAUGHTER_OF_SISTER   // (bhanji)
         logger("getMembersBetweenRelations::findMotherSideUncleAuntRelation: Uncle/Aunt ↔ Nephew/Niece (Mother Side) = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
 
@@ -937,7 +991,7 @@ class FamilyTreeRepositoryImpl(
             else RELATION_TYPE_DAUGHTER_OF_SISTER
 
         logger("getMembersBetweenRelations::findMotherSideNephewNieceSpouseRelation: Uncle/Aunt ↔ Nephew/Niece = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
 
@@ -952,21 +1006,21 @@ class FamilyTreeRepositoryImpl(
     */
     private fun findJijaSalaBhabhiDevarOrNanandRelation(ctx: RelationContext): Pair<String, String>? {
         val sibling =
-            ctx.m2Rel.siblings.firstOrNull { sibling -> sibling.second.memberId == ctx.m1Rel.spouse?.second?.memberId }
+            ctx.m2Rel.siblings.firstOrNull { sibling -> sibling.second.innerMember.memberId == ctx.m1Rel.spouse?.second?.memberId }
 
         if (sibling == null) return null
 
         val relM1ToM2 =
             if (ctx.isM1Male) RELATION_TYPE_HUSBAND_OF_SISTER /*Jija ji*/ else RELATION_TYPE_WIFE_OF_BROTHER /*Bhabhi ji*/
         val relM2ToM1 = when {
-            relM1ToM2 == RELATION_TYPE_WIFE_OF_BROTHER && ctx.isM2Male -> RELATION_TYPE_BROTHER_OF_HUSBAND  /*devar*/
+            relM1ToM2 == RELATION_TYPE_WIFE_OF_BROTHER && ctx.isM2Male -> RELATION_TYPE_YOUNGER_BROTHER_OF_HUSBAND  /*devar*/
             relM1ToM2 == RELATION_TYPE_WIFE_OF_BROTHER && !ctx.isM2Male -> RELATION_TYPE_SISTER_OF_HUSBAND  /*nanad*/
             ctx.isM2Male -> RELATION_TYPE_BROTHER_OF_WIFI  /*sala*/
             else -> RELATION_TYPE_SISTER_OF_WIFI  /*sali*/
         }
 
         logger("getMembersBetweenRelations::findJijaSalaBhabhiDevarOrNanandRelation: = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
 
@@ -981,21 +1035,21 @@ class FamilyTreeRepositoryImpl(
     */
     private fun findSalaJijaDevarOrNanandBhabhiRelation(ctx: RelationContext): Pair<String, String>? {
         val sibling =
-            ctx.m1Rel.siblings.firstOrNull { sibling -> sibling.second.memberId == ctx.m2Rel.spouse?.second?.memberId }
+            ctx.m1Rel.siblings.firstOrNull { sibling -> sibling.second.innerMember.memberId == ctx.m2Rel.spouse?.second?.memberId }
 
         if (sibling == null) return null
 
         val relM2ToM1 =
             if (ctx.isM2Male) RELATION_TYPE_HUSBAND_OF_SISTER /*Jija ji*/ else RELATION_TYPE_WIFE_OF_BROTHER /*Bhabhi ji*/
         val relM1ToM2 = when {
-            relM2ToM1 == RELATION_TYPE_WIFE_OF_BROTHER && ctx.isM1Male -> RELATION_TYPE_BROTHER_OF_HUSBAND  /*devar*/
+            relM2ToM1 == RELATION_TYPE_WIFE_OF_BROTHER && ctx.isM1Male -> RELATION_TYPE_YOUNGER_BROTHER_OF_HUSBAND  /*devar*/
             relM2ToM1 == RELATION_TYPE_WIFE_OF_BROTHER && !ctx.isM1Male -> RELATION_TYPE_SISTER_OF_HUSBAND  /*nanad*/
             ctx.isM1Male -> RELATION_TYPE_BROTHER_OF_WIFI  /*sala*/
             else -> RELATION_TYPE_SISTER_OF_WIFI  /*sali*/
         }
 
         logger("getMembersBetweenRelations::findJijaSalaBhabhiDevarOrNanandRelation: = $relM1ToM2, $relM2ToM1")
-        return relM1ToM2.relationTextInHindi() to relM2ToM1.relationTextInHindi()
+        return relM1ToM2.inHindi() to relM2ToM1.inHindi()
     }
 
 
@@ -1051,20 +1105,27 @@ class FamilyTreeRepositoryImpl(
         parentsWithMemberId.forEach { parent ->
             when (parent.first) {
                 RELATION_TYPE_FATHER -> {
-                    if (isParental)
+                    if (isParental) {
                         relatives.grandParentsFather.add(
                             Pair(
                                 RELATION_TYPE_GRANDFATHER_F,
                                 parent.second
                             )
                         )
-                    else
+                        relatives.parents.firstOrNull { it.second.gender == GENDER_TYPE_MALE }?.let { father ->
+                            fetchUncleAndAunt(parentId = father.second.memberId, relatives, true)
+                        }
+                    } else {
                         relatives.grandParentsMother.add(
                             Pair(
                                 RELATION_TYPE_GRANDFATHER_M,
                                 parent.second
                             )
                         )
+                        relatives.parents.firstOrNull { it.second.gender == GENDER_TYPE_FEMALE }?.let { mother ->
+                            fetchUncleAndAunt(parentId = mother.second.memberId, relatives, false)
+                        }
+                    }
                 }
 
                 RELATION_TYPE_MOTHER -> {
@@ -1102,6 +1163,9 @@ class FamilyTreeRepositoryImpl(
             when (parent.first) {
                 RELATION_TYPE_FATHER -> {
                     relatives.inLaws.add(Pair(RELATION_TYPE_FATHER_IN_LAW, parent.second))
+                    relatives.spouse?.second?.memberId?.let { spouseId ->
+                        fetchSpouseSiblings(spouseId, relatives)
+                    }
                 }
 
                 RELATION_TYPE_MOTHER -> {
@@ -1117,9 +1181,9 @@ class FamilyTreeRepositoryImpl(
         val children = getChildrenWithSpouse(memberId)
         logger("total children: $children")
         children.forEach { child ->
-            if (child.child.memberId != memberId) {
+            if (child.innerMember.memberId != memberId) {
                 logger("child: $child")
-                when (child.child.gender) {
+                when (child.innerMember.gender) {
                     GENDER_TYPE_MALE -> {
                         relatives.children.add(Pair(RELATION_TYPE_SON, child))
                     }
@@ -1133,17 +1197,25 @@ class FamilyTreeRepositoryImpl(
     }
 
 
+    /**
+     * to fetch the siblings with spouse of the member
+     * technically it will fetch the children and their spouse of the actual member's parents
+     * since we only have spouse and parent <-> child relations ship
+     * @param memberId: Member id so that that child can be excluded from the result
+     * @param relatives: Relatives of the Member to fetch parents details and to update the sibling data
+     * */
     private suspend fun fetchSiblings(memberId: Int, relatives: MemberRelationAR) {
-        relatives.parents.forEach {
-            logger("FetchSiblings: for member: $it")
-            val siblings = getChildren(it.second.memberId)
-            logger("siblings: $siblings")
+        relatives.parents.forEach { parent ->
+            logger("FetchSiblings: for member: $parent")
+            val siblings = getChildrenWithSpouse(parent.second.memberId)
+//            logger("siblings: $siblings")
             siblings.forEach { sibling ->
-                if (sibling.memberId != memberId) {
-                    logger("sibling: $sibling")
-                    when (sibling.gender) {
-                        GENDER_TYPE_MALE ->
+                if (sibling.innerMember.memberId != memberId) {
+//                    logger("sibling: $sibling")
+                    when (sibling.innerMember.gender) {
+                        GENDER_TYPE_MALE -> {
                             relatives.siblings.add(Pair(RELATION_TYPE_BROTHER, sibling))
+                        }
 
                         GENDER_TYPE_FEMALE ->
                             relatives.siblings.add(Pair(RELATION_TYPE_SISTER, sibling))
@@ -1154,9 +1226,137 @@ class FamilyTreeRepositoryImpl(
     }
 
 
-    override suspend fun getMemberSmallBio(memberRelatives: MemberRelationAR): String {
+    /**
+     * to fetch the siblings with spouse of the member's spouse
+     * technically it will fetch the children and their spouse of the actual member's parents
+     * since we only have spouse and parent <-> child relations ship
+     * @param spouseId: Member's spouse id so that child can be excluded from the result
+     * @param relatives: Relatives of the Member to fetch parents details and to update the sibling data
+     * */
+    private suspend fun fetchSpouseSiblings(spouseId: Int, relatives: MemberRelationAR) {
+        relatives.inLaws.forEach { parent ->
+            logger("fetchSpouseSiblings: for member: $parent")
+            val siblings = getChildrenWithSpouse(parent.second.memberId)
+//            logger("fetchSpouseSiblings: $siblings")
+            siblings.forEach { sibling ->
+                if (sibling.innerMember.memberId != spouseId) {
+//                    logger("fetchSpouseSiblings: $sibling")
+                    logger("fetchSpouseSiblings: member gender: ${relatives.member?.gender}   sibling gender: $sibling")
+                    when (sibling.innerMember.gender) {
+                        GENDER_TYPE_MALE -> {
+                            if (relatives.member?.gender == GENDER_TYPE_MALE) {
+                                relatives.spouseSiblings.add(Pair(RELATION_TYPE_BROTHER_OF_WIFI, sibling)) // sala
+                            } else {
+                                val isElder = (relatives.spouse?.second?.dob ?: "").isElderOne(sibling.innerMember.dob)
+                                relatives.spouseSiblings.add(Pair(
+                                    if(isElder) RELATION_TYPE_YOUNGER_BROTHER_OF_HUSBAND else RELATION_TYPE_ELDER_BROTHER_OF_HUSBAND, sibling)) // devar/jeth
+                            }
+                        }
+                        GENDER_TYPE_FEMALE -> {
+                            if (relatives.member?.gender == GENDER_TYPE_MALE) {
+                                relatives.spouseSiblings.add(Pair(RELATION_TYPE_SISTER_OF_WIFI, sibling)) // sali
+                            } else {
+                                relatives.spouseSiblings.add(Pair(RELATION_TYPE_SISTER_OF_HUSBAND, sibling)) // nanad
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    /**
+     * to fetch the uncle and aunt of the member for both father and mother side
+     * technically it will fetch the children and their spouse of the actual member's grandParents
+     * since we only have spouse and parent <-> child relations ship
+     * @param parentId: Member's parent id so that that child can be excluded from the result
+     * @param isParentUncleAunt: true for father side, false for mother side
+     * @param relatives: Relatives of the Member to fetch grandParents details and to update the sibling data
+     * */
+    private suspend fun fetchUncleAndAunt(
+        parentId: Int,
+        relatives: MemberRelationAR,
+        isParentUncleAunt: Boolean = true
+    ) {
+        logger("fetchUncleAndAunt: for parentId: $parentId isParentUncleAunt: $isParentUncleAunt")
+
+        val grandParents =
+            if (isParentUncleAunt) relatives.grandParentsFather else relatives.grandParentsMother
+
+        grandParents.forEach { parent ->
+//            logger("fetchUncleAndAunt: for member: $parent")
+            val siblings = getChildrenWithSpouse(parent.second.memberId)
+//            logger("fetchUncleAndAunt: $siblings")
+            siblings.forEach { sibling ->
+                if (sibling.innerMember.memberId != parentId) {
+//                    logger("fetchUncleAndAunt: $sibling")
+                    if (isParentUncleAunt) {
+                        val isElder =
+                            calculateAgeFromDob(parent.second.dob) > calculateAgeFromDob(sibling.innerMember.dob)
+
+                        when (sibling.innerMember.gender) {
+                            GENDER_TYPE_MALE ->
+                                relatives.uncleAuntFatherSide.add(
+                                    Pair(
+                                        if (isElder) RELATION_TYPE_ELDER_BROTHER_OF_FATHER else RELATION_TYPE_YOUNGER_BROTHER_OF_FATHER,
+                                        sibling
+                                    )
+                                )
+
+                            GENDER_TYPE_FEMALE ->
+                                relatives.uncleAuntFatherSide.add(
+                                    Pair(
+                                        RELATION_TYPE_SISTER_OF_FATHER,
+                                        sibling
+                                    )
+                                )
+                        }
+                    } else {
+                        when (sibling.innerMember.gender) {
+                            GENDER_TYPE_MALE ->
+                                relatives.uncleAuntMotherSide.add(
+                                    Pair(
+                                        RELATION_TYPE_BROTHER_OF_MOTHER,
+                                        sibling
+                                    )
+                                )
+
+                            GENDER_TYPE_FEMALE ->
+                                relatives.uncleAuntMotherSide.add(
+                                    Pair(
+                                        RELATION_TYPE_SISTER_OF_MOTHER,
+                                        sibling
+                                    )
+                                )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    override suspend fun getMemberSmallBio(
+        memberRelatives: MemberRelationAR,
+        isAncestorBio: Boolean
+    ): String {
         logger("getMemberSmallBio: ${memberRelatives.member?.fullName}")
         val member = memberRelatives.member ?: return ""
+        var ancestorBio = ""
+        if (isAncestorBio) {
+            memberRelatives.member?.let { member ->
+                val ancestryList = getFatherAncestryWithLevel(member, 0)
+                if (ancestryList.isNotEmpty()) {
+                    val personName = ancestryList.last().name.substringBefore("❤️").trim()
+                    val firstAncestor = ancestryList.first()
+                    val generationNumber = ancestryList.size
+
+                    ancestorBio = "$personName ${generationNumber}वीं पीढ़ी से हैं, " +
+                            "जिसकी शुरुआत ${firstAncestor.name} से होती है।\n"
+                }
+            }
+        }
 
         val memberName = member.fullName
 
@@ -1178,9 +1378,9 @@ class FamilyTreeRepositoryImpl(
         val bio = StringBuilder()
 
         // --- Birth / Death ---
-        bio.append("$memberName ${HiText.BORN_} ${member.dob} ${HiText.ON}")
+        bio.append("$memberName ${HiText.BORN_} ${member.dob.toHindiReadableDate()} ${HiText.ON} हुआ")
         if (!member.isLiving) {
-            bio.append(" ${HiText.DIED} ${member.dod} ${HiText.ON} हुआ")
+            bio.append(" ${HiText.DIED} ${member.dod.toHindiReadableDate()} ${HiText.ON} हुआ")
         }
         bio.append("। ")
 
@@ -1189,6 +1389,9 @@ class FamilyTreeRepositoryImpl(
             "${HiText.VE} ${HiText.SHREE} $fatherName ${HiText.AND} " +
                     "${HiText.SHREEMATI} $motherName के $childWord ${HiText.IS}।\n"
         )
+
+        if (ancestorBio.isNotEmpty())
+            bio.append(ancestorBio)
 
         // --- Marriage ---
         if (!spouseName.isNullOrBlank()) {
@@ -1206,7 +1409,7 @@ class FamilyTreeRepositoryImpl(
                 else
                     HiText.FEMALE_CHILD
                 bio.append(
-                    "${HiText.HAS} ${HiText.ONLY_ONE} $childGender, ${firstChild.second.child.fullName} हैं।\n"
+                    "${HiText.HAS} ${HiText.ONLY_ONE} $childGender, ${firstChild.second.innerMember.fullName} हैं।\n"
                 )
             } else {
                 bio.append(
@@ -1214,7 +1417,7 @@ class FamilyTreeRepositoryImpl(
                 )
 
                 memberRelatives.children.forEachIndexed { index, child ->
-                    val childName = child.second.child.fullName
+                    val childName = child.second.innerMember.fullName
                     val genderText =
                         if (child.first == RELATION_TYPE_SON)
                             HiText.MALE_CHILD
@@ -1267,22 +1470,22 @@ class FamilyTreeRepositoryImpl(
         }
         if (memberRelatives.children.isNotEmpty()) {
             memberRelatives.children.forEach {
-                if (it.second.child.gender == GENDER_TYPE_MALE)
+                if (it.second.innerMember.gender == GENDER_TYPE_MALE)
                     timeline.add(
                         TimelineEvent(
                             TimelineEventType.SON_BIRTH,
-                            "${HiText.SON_BORN}: ${it.second.child.fullName}",
+                            "${HiText.SON_BORN}: ${it.second.innerMember.fullName}",
                             "",
-                            it.second.child.dob
+                            it.second.innerMember.dob
                         )
                     )
                 else
                     timeline.add(
                         TimelineEvent(
                             TimelineEventType.DAUGHTER_BIRTH,
-                            "${HiText.DAUGHTER_BORN}: ${it.second.child.fullName}",
+                            "${HiText.DAUGHTER_BORN}: ${it.second.innerMember.fullName}",
                             "",
-                            it.second.child.dob
+                            it.second.innerMember.dob
                         )
                     )
             }
@@ -1298,7 +1501,8 @@ class FamilyTreeRepositoryImpl(
             )
         }
         timeline.sortBy { it.date }
-        timeline.add(0,
+        timeline.add(
+            0,
             TimelineEvent(
                 TimelineEventType.BIRTH,
                 HiText.BORN,

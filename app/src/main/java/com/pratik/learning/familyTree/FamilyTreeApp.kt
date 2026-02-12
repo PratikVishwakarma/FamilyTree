@@ -11,13 +11,17 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.pratik.learning.familyTree.utils.SyncOnExitWorker
 import com.pratik.learning.familyTree.utils.SyncPrefs.getIsDataUpdateRequired
-import com.pratik.learning.familyTree.utils.isAdmin
 import com.pratik.learning.familyTree.utils.logger
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class FamilyTreeApp : Application(), LifecycleObserver {
+
+
+    companion object {
+        var isAdmin = false
+    }
     override fun onCreate() {
         super.onCreate()
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)

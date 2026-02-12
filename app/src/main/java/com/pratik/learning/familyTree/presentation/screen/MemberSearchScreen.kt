@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -42,16 +43,17 @@ import com.pratik.learning.familyTree.presentation.component.Container
 import com.pratik.learning.familyTree.presentation.component.FilterView
 import com.pratik.learning.familyTree.presentation.component.MemberInfoOverlay
 import com.pratik.learning.familyTree.presentation.component.MemberSmallTile
+import com.pratik.learning.familyTree.presentation.viewmodel.AppViewModel
 import com.pratik.learning.familyTree.presentation.viewmodel.MembersViewModel
 import com.pratik.learning.familyTree.utils.inHindi
-import com.pratik.learning.familyTree.utils.isAdmin
 import com.pratik.learning.familyTree.utils.logger
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun MemberSearchScreen(
     navController: NavController,
-    viewModel: MembersViewModel
+    viewModel: MembersViewModel,
+    appVM: AppViewModel
 ) {
 
     val members = viewModel.filterResult2.collectAsLazyPagingItems()
@@ -64,19 +66,15 @@ fun MemberSearchScreen(
             viewModel.onQueryChanged("")
         if (uiState is UIState.FilterExpandedUIState)
             viewModel.dismissFilterExpand()
-        else
-            navController.popBackStack()
+        else {
+            appVM.closeApp()
+        }
     }
     Container(
         title = "Members",
         isFilter = true,
         rightButton = {
-            if (viewModel.relationType.isEmpty() && isAdmin)
-                Text(
-                    "Add Member".inHindi(),
-                    modifier = Modifier.clickable { viewModel.navigateToAddMember(navController) },
-                    style = MaterialTheme.typography.titleMedium
-                )
+
         }
     ) {
         when (uiState) {
@@ -143,23 +141,6 @@ fun MemberSearchScreen(
                     }
                 )
             }
-
-//            if (viewModel.relationType.isEmpty()) {
-//                Spacer(Modifier.height(8.dp))
-//                Row(
-//                    modifier = Modifier.wrapContentSize(),
-//                    verticalAlignment = Alignment.CenterVertically,
-//                    horizontalArrangement = Arrangement.SpaceBetween
-//                ) {
-//                    Spacer(Modifier.weight(1f))
-//                    Text(
-//                        "Open Filter",
-//                        modifier = Modifier.clickable {
-//                            viewModel.showExpandedFilter()
-//                        }
-//                    )
-//                }
-//            }
             Spacer(Modifier.height(8.dp))
             LazyColumn {
                 items(members.itemCount) { index ->
